@@ -35,3 +35,5 @@ grep -C 10 "OrderlD:123" app.log
 grep -r "fonnectionTimeout" /var/log//
 ```
 
+## 软连接和硬链接
+

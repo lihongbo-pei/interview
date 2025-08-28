@@ -1,10 +1,30 @@
 # Java
 
+## 基础
+
+### 异常
+
+#### 介绍一下Java异常
+
+Java异常类层次结构图：
+
+![Exception](assets/Exception.png)
+
+Java的异常体系主要基于两大类：**Throwable类**及其子类。Throwable有两个重要的子类：Error和Exception，它们分别代表了不同类型的异常情况。
+
+1. **Error（错误）**：表示运行时环境的错误。错误是程序无法处理的严重问题，如系统崩溃、虚拟机错误、动态链接失败等。通常，程序不应该尝试捕获这类错误。例如，OutOfMemoryError、StackOverflowError等。
+
+2. **Exception（异常）**：表示程序本身可以处理的异常条件。异常分为两大类：
+   - **非运行时异常**：这类异常在编译时期就必须被捕获或者声明抛出。它们通常是外部错误，如文件不存在（FileNotFoundException）、类未找到（ClassNotFoundException）等。非运行时异常强制程序员处理这些可能出现的问题，增强了程序的健壮性。
+   - **运行时异常**：这类异常包括运行时异常（RuntimeException）和错误（Error）。运行时异常由程序错误导致，如空指针访问（NullPointerException）、数组越界（ArrayIndexOutOfBoundsException）等。**运行时异常是不需要在编译时强制捕获或声明的。**
+
 ## 集合
 
 ### List
 
 ####  ArrayList线程安全吗？把ArrayList变成线程安全有哪些方法？
+
+> 笔试：小红书
 
 不是线程安全的，ArrayList变成线程安全的方式有：
 
