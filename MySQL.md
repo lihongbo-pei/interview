@@ -44,6 +44,9 @@ LIMIT offset, row_count;
 ```sql
 # 给video_records表新增一个del_flag字段，类型为INT，默认值为1
 ALTER TABLE detect_video_records ADD COLUMN del_flag INT(11) DEFAULT 1;
+# 给sys_role_info表新增一个role_desc、enabled_flag字段
+ALTER TABLE sys_role_info ADD COLUMN role_desc VARCHAR(255) COMMENT '角色描述';
+ALTER TABLE sys_role_info ADD COLUMN enabled_flag CHAR(1) DEFAULT '1' COMMENT '是否启用';
 
 # Asc 表示升序（Ascending），即从低到高或从小到大排序；
 # Desc 表示降序（Descending），即从高到低或从大到小排序。
