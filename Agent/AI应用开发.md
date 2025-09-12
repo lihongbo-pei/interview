@@ -612,12 +612,12 @@ AI 提供的优化后系统提示词：
 
 通过示例代码，⁠能够感受到 ChatMode‌l 和 ChatClient 的区别。ChatClien‎t 支持更复杂灵活的链式调用‌（Fluent API）：
 
-```
+```java
 ChatResponse response = chatModel.call(new Prompt("你好"));
 
 
 ChatClient chatClient = ChatClient.builder(chatModel)
-    .defaultSystem("你是恋爱顾问")
+    .defaultSystem("你是旅游顾问")
     .build();
     
 String response = chatClient.prompt().user("你好").call().content();
@@ -632,14 +632,14 @@ public class ChatService {
     
     public ChatService(ChatClient.Builder builder) {
         this.chatClient = builder
-            .defaultSystem("你是恋爱顾问")
+            .defaultSystem("你是旅游顾问")
             .build();
     }
 }
 
 
 ChatClient chatClient = ChatClient.builder(chatModel)
-    .defaultSystem("你是恋爱顾问")
+    .defaultSystem("你是旅游顾问")
     .build();
 ```
 
@@ -756,6 +756,10 @@ var chatClient = ChatClient.builder(chatModel)
 
 Advisor 类图如下，了解即可：
 
+## 五、多轮对话 AI 应用开发
+
+## 六、扩展知识
+
 ### 对话记忆持久化
 
 之前我们使用了基于内存的对话记忆来保存对话上下文，但是服务器一旦重启了，对话记忆就会丢失。有时，我们可能希望将对话记忆持久化，保存到文件、数据库、Redis 或者其他对象存储中，怎么实现呢？
@@ -800,3 +804,279 @@ ChatMemory 接口的方法并不多，需要实现对话消息的增、查、删
 3. 子类没有无参构造函数，而且没有实现 Serializable 序列化接口
 
 Spring AI Message 的类图：
+
+![app-3](assets/app-3.jpg)
+
+因此，如果使用 JSON 来序列化会存在很多报错。所以此处我们选择高性能的 [Kryo 序列化库](https://github.com/EsotericSoftware/kryo)。
+
+1）引入依赖：
+
+```
+<dependency>
+    <groupId>com.esotericsoftware</groupId>
+    <artifactId>kryo</artifactId>
+    <version>5.6.2</version>
+</dependency>
+```
+
+2）在根包下新建 `chatmemory` 包，编写基于文件持久化的对话记忆 FileBasedChatMemory，代码如下：
+
+```
+pu⁠blic class ‌FileBasedChatMemory im‎plements Ch‌atMemory {
+
+    priv⁠ate final Strin‌g BASE_DIR;
+    private static‎ final Kryo kry‌o = new Kryo();
+
+    static {
+        kryo.setRegistrationRequired(false);
+        
+        kryo.setInstantiatorStrategy(new StdInstantiatorStrategy());
+    }
+
+    
+    public FileBased‎ChatMemory(S‌tring dir) {
+        this.BASE_DIR = dir;
+     ⁠   File b‌aseDir = new File(‎dir);
+        if (!baseDir.exists()) {
+            baseDir.mkdirs();
+        }
+    }
+
+    @Override
+    public void add(String conversationId, List<Message> messages) {
+        List<Message> conversationMessages = getOrCreateConversation(conversationId);
+        conversationMessages.addAll(messages);
+      ⁠  saveConver‌sation(conversationId, c‎onversationM‌essages);
+    }
+
+    @Override
+    public List<Message> get(String conversationId, int lastN) {
+        List<Message> allMessages = getOrCreateConversation(conversationId);
+        return allMessages.stream()
+                .skip(Math.max(0, allMessages.size() - lastN))
+     ⁠         ‌  .toList();
+    }
+
+    @Overri⁠de
+    public void cle‌ar(String conversationId) {
+        File fil‎e = getConversationFil‌e(conversationId);
+        if (file.exists()) {
+            file.delete();
+        }
+    }
+
+    private List<Message> getOrCreateConversation(String conversationId) {
+     ⁠   File fi‌le = getConversation‎File(conve‌rsationId);
+        List<Message> messages = new ArrayList<>();
+        if (file.exists()) {
+       ⁠     try (Inp‌ut input = new Input(new F‎ileInputStrea‌m(file))) {
+                messages = kryo.readObject(input, ArrayList.class);
+     ⁠       } ‌catch (IOException‎ e) {
+                e.printStackTrace();
+     ⁠       }
+‌        }
+        ‎return me‌ssages;
+    }
+
+    private void saveConversation(String conversationId, List<Message> messages) {
+        File⁠ file = getConversationF‌ile(conversationId);
+        try (Output output ‎= new Output(new FileOut‌putStream(file))) {
+            kryo.writeObject(output, messages);
+     ⁠   } catc‌h (IOException e) ‎{
+            e.printStackTrace();
+        }
+    }
+
+    private F⁠ile getConversationFile(S‌tring conversationId) {
+        return new File(BA‎SE_DIR, conversationId + ‌".kryo");
+    }
+}
+```
+
+虽然上述代码看起来复杂，但大多数代码都是文件和 Message 对象的转换，完全可以利用 AI 生成这段代码。
+
+3）修改 TravelApp 的构造函数，使用基于文件的对话记忆：
+
+```
+public⁠ TravelApp(Cha‌tModel dashscopeChatMode‎l) {
+    
+    String fileDir = System.getProperty("user.dir") + "/chat-memory";
+    Ch⁠atMemory ch‌atMemory = new FileBas‎edChatMemor‌y(fileDir);
+    chatClient = ChatClient.builder(dashscopeChatModel)
+            .defa⁠ultSystem(SYSTEM_PROMPT)
+        ‌    .defaultAdvisors(
+                    new MessageChatMemoryAdv‎isor(chatMemory)
+            )
+  ‌          .build();
+}
+```
+
+4）测试运行，文件持久化成功：
+
+### PromptTemplate 模板
+
+#### 什么是 PromptTemplate？有什么用？
+
+[PromptTemplate](https://docs.spring.io/spring-ai/reference/api/prompt.html#_prompttemplate) 是 Spring AI 框架中用于构建和管理提示词的核心组件。允许开发者创建带有占位符的文本模板，然后在运行时动态替换这些占位符。
+
+它相当于 AI 交互中的 “视图层”，类似于 Spring MVC 中的视图模板（或者 JSP）。通过使用 PromptTemplate，你可以更加结构化、可维护地管理 AI 应用中的提示词，使其更易于优化和扩展，同时降低硬编码带来的维护成本。
+
+PromptTemplate 最基本的功能是支持变量替换。你可以在模板中定义占位符，然后在运行时提供这些变量的值：
+
+```
+Strin‌g template = "你好，{name}。‎今天是{day}，天气{‌weather}。";
+
+
+PromptTemp‌late promptTemplate = new ‎PromptTemplat‌e(template);
+
+
+Map<String, Object> variables = new HashMap<>();
+variables.put("name", "鱼皮");
+variables.put("day", "星期一");
+variables.put("weather", "晴朗");
+
+
+String prompt = promptTemplate.render(variables);
+```
+
+💡 模板的思路在编程技术中经常用到，比如数据库的预编译语句、记录日志时的变量占位符、模板引擎等。
+
+PromptTemplate 在以下场景特别有用：
+
+1. 动态个性化交互：根据用户信息、上下文或业务规则定制提示词
+2. 多语言支持：使用相同的变量但不同的模板文件支持多种语言
+3. A/B 测试：轻松切换不同版本的提示词进行效果对比
+4. 提示词版本管理：将提示词外部化，便于版本控制和迭代优化
+
+#### 实现原理
+
+PromptTemplate 底层使用了 OSS StringTemplate 引擎，这是一个强大的模板引擎，专注于文本生成。在 Spring AI 中，PromptTemplate 类实现了以下接口：
+
+```
+public cla⁠ss PromptTemplate im‌plements PromptTemplateActions, PromptTe‎mplateMessageActions‌ {
+    
+}
+```
+
+这些接口提供了不同类型的模板操作功能，使其既能生成普通文本，也能生成结构化的消息。
+
+类图如下：
+
+#### 专用模板类
+
+Spring AI 提供了几种专用的模板类，对应不同角色的消息：
+
+1. SystemPromptTemplate：用于系统消息，设置 AI 的行为和背景
+2. AssistantPromptTemplate：用于助手消息，用于设置 AI 回复的结构
+3. FunctionPromptTemplate：目前没用
+
+这些专用模板类让开发者能更清晰地表达不同类型消息的意图，比如系统消息模板能够快速构造系统 Prompt，示例代码：
+
+```
+String userText = "⁠""
+    Tell me about three famous pira‌tes from the Golden Age of Piracy and why they did.
+    Write at least a sen‎tence for each pirate.
+    """;       ‌                         
+
+Messa⁠ge userMe‌ssage = new UserMe‎ssage(use‌rText);
+
+String systemText = "⁠""
+  You are a helpful AI assistant that ‌helps people find information.
+  Your name is {name}
+  You should reply to the use‎r's request with your name and also in th‌e style of a {voice}.
+  """;
+
+SystemPr⁠omptTemplate sy‌stemPromptTemplate = new Syste‎mPromptTemplate‌(systemText);
+Message systemMessage = systemPromptTemplate.createMessage(Map.of("name", name, "voice", voice));
+
+Prompt prompt = new Prompt(List.of(userMessage, systemMessage));
+
+List<Generation> response = chatModel.call(prompt).getResults();
+```
+
+#### 从文件加载模板
+
+PromptTemplate 支持从外部文件加载模板内容，很适合管理复杂的提示词。Spring AI 利用 Spring 的 Resource 对象来从指定路径加载模板文件：
+
+```
+@Value("classpath:/prompts/system-message.st")
+priva⁠te Resour‌ce systemResource;
+
+
+SystemPromptT‌emplate systemPromptTemplate = new S‎ystemPromptTemplat‌e(systemResource);
+```
+
+这种方式让你可以：
+
+- 将复杂的提示词放在单独的文件中管理
+- 在不修改代码的情况下调整提示词
+- 为不同场景准备多套提示词模板
+
+是不是有点像写配置文件？有点儿前后端分离的感觉了？我也会更推荐大家使用这种方式来管理 Prompt 模板。
+
+### 多模态
+
+AI 多模态是指能够同时处理、理解和生成多种不同类型数据的能力，比如文本、图像、音频、视频、PDF、结构化数据（比如表格）等。
+
+还有一个概念叫 “原生多模态大模型”，是指在架构设计和预训练阶段就直接整合多种数据类型的 AI 模型，可以使用单一模型同时处理多种模态数据，而非将多个单模态模型简单组合在一起。比如 OpenAI GPT-4o、Google Vertex AI Gemini 1.5、Anthropic Claude3 等。
+
+原生多模态大模型可以在整个模型中共享特征和学习策略，有助于捕获跨模态特征间的复杂关系。所以它们通常在执行跨模态任务时表现更好，比如图文匹配、视觉问答或多模态翻译。
+
+下面分享 2 种多模态开发的方法。
+
+#### 1、Spring AI 多模态开发
+
+Spring AI 提供了 [多模态开发](https://docs.spring.io/spring-ai/reference/api/multimodality.html) 的支持，但是要注意很多模型是不支持多模态的，所以在开发前一定要查看 [支持多模态的模型文档](https://docs.spring.io/spring-ai/reference/api/chat/comparison.html)。
+
+目前多模态能力较强的模型有 Google VertexAI Gemini 和 OpenAI：
+
+选择大模型后，可以参考对应的官方文档来了解多模态的开发方式，比如 [VertexAI 文档](https://docs.spring.io/spring-ai/reference/api/chat/vertexai-gemini-chat.html)。
+
+允许在发送给 AI 的消息中包含图片等资源，示例代码如下：
+
+```
+byte[] data = new ClassPathResource("/vertex-test.png").getContentAsByteArray();
+
+var use⁠rMessage = new‌ UserMessage("Explain what d‎o you see on t‌his picture?",
+        List.of(new Media(MimeTypeUtils.IMAGE_PNG, this.data)));
+
+ChatResponse response = chatModel.call(new Prompt(List.of(this.userMessage)));
+```
+
+还可以通过 ChatClient 的 API 来添加资源：
+
+```
+String response = ChatClient.create(chatModel).prompt()
+		.user(u -> u.text("Explain what do you see on this picture?")
+				    .media(MimeTypeUtils.IMAGE_PNG, new ClassPathResource("/multimodal.test.png")))
+		.call()
+		.content();
+```
+
+但是由于国外的 AI 使用成本较高，尤其是 VertexAI，首先需要特殊的网络支持，而且需要在 Google Cloud 上创建项目、还要本地下载 Google CLI 工具来生成认证文件，非常麻烦！这里就不带大家演示了，感兴趣的同学可以参考 [Vertex AI 的官方文档](https://cloud.google.com/vertex-ai/generative-ai/docs/start/quickstarts/quickstart-multimodal?hl=zh-cn) 来使用，参考 [这个文档](https://cloud.google.com/docs/authentication/provide-credentials-adc) 来获取认证文件。
+
+#### 2、平台 SDK 多模态开发
+
+这种方式更适合中国宝宝的体质，直接参考大模型平台的官方文档，使用平台提供的 SDK 或 API 调用多模态大模型。比如 [阿里云百炼平台的多模态支持](https://help.aliyun.com/zh/model-studio/use-qwen-by-calling-api#d0e30636ad3s3)：
+
+现在大家只需要了解上述开发方式即可，今后会出现更多原生多模态大模型，多模态开发也会变得越来越简单。
+
+## 七、扩展思路
+
+1）自定义 Advisor，比如权限校验、违禁词校验 Advisor
+
+2）自定义对话记忆，比如持久化对话到 MySQL 或 Redis 存储中
+
+3）编写一套包含变量的 Prompt 模板，并保存为资源文件，从文件加载模板
+
+4）开发一个多模态对话助手，能够让 AI 解释图片（建议使用国内的 AI 大模型）
+
+5）阅读 Spring AI 官方的 [ChatMemory 文档](https://docs.spring.io/spring-ai/reference/api/chat-memory.html)，了解如何自主构造 ChatMemory
+
+## 本节作业
+
+1）完成 AI 恋爱大师应用的开发，或者自己定义一种类型的应用
+
+2）理解对话记忆、Advisor、结构化输出的工作流程和原理
+
+3）利用结构化输出特性，将 AI 的输出映射为自定义的 Java 对象
