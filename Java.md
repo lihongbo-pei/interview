@@ -113,6 +113,25 @@ public boolean equals(Object anObject) {
 
  Java提供了众多集合的实现类，它们都是这些接口的直接或间接的实现类，其中比较常用的有：HashSet、TreeSet、ArrayList、LinkedList、ArrayDeque、HashMap、TreeMap等。
 
+### Arrays.sorted怎么处理泛型？
+
+通过使用Lambda表达式或Comparator，可以灵活地对泛型数组进行排序。
+
+```java
+// 使用Lambda表达式按升序排序
+Arrays.sort(numbers, (a, b) -> a.compareTo(b));
+
+// 使用Comparator按降序排序
+Arrays.sort(numbers, new Comparator<Integer>() {
+    @Override
+    public int compare(Integer a, Integer b) {
+        return b.compareTo(a);
+    }
+});
+```
+
+
+
 ### List
 
 ####  ArrayList线程安全吗？把ArrayList变成线程安全有哪些方法？
@@ -351,33 +370,100 @@ JDK 1.8 ConcurrentHashMap 主要通过 volatile + CAS 或者 synchronized 来实
 
 ### Java8 新特性
 
-#### Date-Time API
+#### Stream流的原理
 
-在Java中，`Date`和`LocalDateTime`是两种不同的日期时间类，它们在设计、功能和用途上存在诸多区别，以下是详细对比：
+Stream 流的核心原理之一是**惰性求值**。当我们对 Stream 进行一系列的中间操作，如 `filter`、`map` 等时，这些操作并不会立即执行，而是会构建一个操作管道。只有当我们执行终端操作，比如 `forEach`、`collect` 等时，整个操作管道才会被触发执行。这种机制的好处在于它可以避免不必要的计算，提高性能，并且支持链式调用，让代码更加简洁易读。
 
-设计理念
+此外，Stream 流还支持**短路操作**。某些终端操作，例如 `findAny`、`findFirst`、`anyMatch` 等，会在找到满足条件的结果后立即停止操作，而不会继续处理后续的元素。这同样是一种性能优化的体现，能够减少不必要的计算。
 
-- **`Date`**：是Java早期的日期时间类，它将日期和时间封装在一起，同时包含了时间戳（自1970年1月1日00:00:00 GMT以来的毫秒数）的概念。它的设计较为简单，但在处理时区、日期时间计算等方面存在一些不足。
-- **`LocalDateTime`**：是Java 8引入的新的日期时间类，属于`java.time`包。它是基于ISO日历系统的日期时间类，不包含时区信息。它的设计更加科学和灵活，解决了`Date`类中的一些问题，是Java日期时间API的现代替代方案。
+#### Stream流怎么结合Lambda表达式？
 
-功能特性
+1. 过滤（filter）
 
-- **时区处理**：
-    - **`Date`**：虽然`Date`类本身不直接包含时区信息，但它与系统默认时区相关联。在不同时区的系统上，`Date`对象的显示可能会有所不同。
-    - **`LocalDateTime`**：明确不包含时区信息，它只表示一个具体的日期和时间，与时区无关。如果需要处理时区，可以使用`ZonedDateTime`类。
-- **不可变性**：
-    - **`Date`**：是可变类，可以通过`setTime`等方法修改对象的值。这种可变性可能导致线程安全问题。
-    - **`LocalDateTime`**：是不可变类，一旦创建，其值不能被修改。如果需要修改日期时间，必须创建一个新的对象。这种不可变性使得`LocalDateTime`在多线程环境中更加安全。
-- **日期时间计算**：
-    - **`Date`**：提供了一些基本的日期时间计算方法，如`getTime`、`setTime`等，但功能相对有限，且不够直观。
-    - **`LocalDateTime`**：提供了丰富的日期时间计算方法，如`plusDays`、`minusMonths`、`plusYears`等，这些方法返回一个新的`LocalDateTime`对象，使得日期时间计算更加方便和直观。
-- **格式化和解析**：
-    - **`Date`**：通常需要借助`SimpleDateFormat`类来进行格式化和解析，但`SimpleDateFormat`是线程不安全的，使用时需要注意线程安全问题。
-    - **`LocalDateTime`**：可以使用`DateTimeFormatter`类进行格式化和解析，`DateTimeFormatter`是线程安全的，且提供了更强大的格式化功能。
+   ```java
+   filter(fruit -> fruit.length() > 5)
+   ```
 
-使用场景
+2. 映射（map）
 
-- **`Date`**：由于其历史原因，`Date`类在一些旧的Java项目中仍然被广泛使用。如果需要与旧的系统或库进行兼容，可能仍然需要使用`Date`类。
-- **`LocalDateTime`**：在新的Java项目中，推荐使用`LocalDateTime`类及其相关类（如`ZonedDateTime`、`Instant`等）。它提供了更强大的功能、更好的**线程安全性**和更清晰的API设计，能够更好地满足现代应用程序对日期时间处理的需求。
+   ```java
+   map(String::toUpperCase)
+   ```
 
-总的来说，`LocalDateTime`是Java日期时间API的现代替代方案，它在设计、功能和安全性方面都优于`Date`类，建议在新的项目中优先使用`LocalDateTime`。
+3. 排序（sorted）
+
+   ```java
+   sorted((f1, f2) -> Integer.compare(f1.length(), f2.length()))
+   ```
+
+4. 遍历（forEach）
+
+   ```java
+   forEach(fruit -> System.out.println(fruit))
+   ```
+
+5. 收集（collect）、匹配（allMatch、anyMatch、noneMatch）、查找（findFirst、findAny）
+
+```java
+List<String> fruits = Arrays.asList("apple", "banana", "cherry", "date");
+
+// 使用Lambda表达式过滤长度大于5的字符串
+List<String> filteredFruits = fruits.stream()
+                                    .filter(fruit -> fruit.length() > 5)
+                                    .collect(Collectors.toList());
+
+ // 使用Lambda表达式将所有字符串转换为大写
+List<String> upperCaseFruits = fruits.stream()
+                                     .map(String::toUpperCase)
+                                     .collect(Collectors.toList());
+
+// 使用Lambda表达式按字符串长度排序
+List<String> sortedFruits = fruits.stream()
+                                  .sorted((f1, f2) -> Integer.compare(f1.length(), f2.length()))
+                                  .collect(Collectors.toList());
+
+// 使用Lambda表达式打印每个元素
+fruits.stream()
+      .forEach(fruit -> System.out.println(fruit));
+
+// 使用Lambda表达式按字符串长度分组
+Map<Integer, List<String>> groupedByLength = fruits.stream()
+                                                   .collect(Collectors.groupingBy(String::length));
+
+// 使用Lambda表达式检查所有字符串是否都以'a'开头
+boolean allStartWithA = fruits.stream()
+                              .allMatch(fruit -> fruit.startsWith("a"));
+// 使用Lambda表达式检查是否有任何字符串以'b'开头
+boolean anyStartWithB = fruits.stream()
+                              .anyMatch(fruit -> fruit.startsWith("b"));
+// 使用Lambda表达式检查是否有字符串以'z'开头
+boolean noneStartWithZ = fruits.stream()
+                               .noneMatch(fruit -> fruit.startsWith("z"));
+
+// 使用Lambda表达式查找第一个以'a'开头的字符串
+Optional<String> firstStartWithA = fruits.stream()
+                                         .filter(fruit -> fruit.startsWith("a"))
+                                         .findFirst();
+// 使用Lambda表达式查找任意一个以'b'开头的字符串
+Optional<String> anyStartWithB = fruits.stream()
+                                       .filter(fruit -> fruit.startsWith("b"))
+                                       .findAny();
+```
+
+#### Optional类是干嘛的？
+
+防止空指针异常的
+
+`ofNullable` 方法和`of`方法唯一区别就是当 value 为 null 时，
+
+- `ofNullable` 返回的是`EMPTY`，
+- of 会抛出 `NullPointerException` 异常。
+
+如果需要把 `NullPointerException` 暴漏出来就用 `of`，否则就用 `ofNullable`。
+
+**`map()` 和 `flatMap()` 有什么区别的？**
+
+`map` 和 `flatMap` 都是将一个函数应用于集合中的每个元素，但不同的是`map`返回一个新的集合，`flatMap`是将每个元素都映射为一个集合，最后再将这个集合展平。
+
+在实际应用场景中，如果`map`返回的是数组，那么最后得到的是一个二维数组，使用`flatMap`就是为了将这个二维数组展平变成一个一维数组。
+

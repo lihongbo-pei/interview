@@ -39,6 +39,20 @@ LIMIT offset, row_count;
 
 因此，在大表上，如果目标是快速清空表中的所有数据，`TRUNCATE`通常是更高效的选择。但需要注意，`TRUNCATE`操作不可回滚，使用时需谨慎。
 
+### 查询SQL
+
+```sql
+# 统计出学生的成绩总分，按降序排序
+select name, sum(score) as total_score from tbname group by name order by total_score desc;
+
+# 查询所有课程的平均成绩
+select subject, avg(score) as avg_score from tbname group by subject;
+```
+
+
+
+
+
 ### 项目中的用法
 
 ```sql
@@ -309,6 +323,10 @@ lock tables t_stuent write;
 
 #### 行级锁
 
+## 日志
+
+
+
 ## 重要知识点
 
 ### SQL语句在MySQL中的执行过程
@@ -339,7 +357,7 @@ update tb_student A set A.age='19' where A.name=' 张三 ';
 
 *Relay log：从服务器的中继日志。*
 
-**第一步：**master在每个事务更新数据完成之前，将该操作记录串行地写入到binlog文件中。
+**第一步：**master在每个事务更新数据完成之前，将该操作记录串行地写入到 `binlog` 文件中。
 
 **第二步：**salve开启一个I/O Thread，该线程在master打开一个普通连接，主要工作是binlog dump process。如果读取的进度已经跟上了master，就进入睡眠状态并等待master产生新的事件。I/O线程最终的目的是将这些事件写入到中继日志中。
 
@@ -356,10 +374,45 @@ update tb_student A set A.age='19' where A.name=' 张三 ';
    - **覆盖索引**：索引包含查询所需的所有列，避免回表查询，提高查询效率。
 2. **优化 SQL 语句**
    - **避免 SELECT \* **：只查询需要的字段，减少数据传输。
+   - **使用合适的 JOIN**：避免使用 `N+1` 查询，避免笛卡尔积，尽量减少查询的次数。
 3. **表结构与数据设计优化**
    - **优化表结构**：合理选择数据类型，避免过大的字段长度，尽量使用合适的 `INT`、`VARCHAR` 类型。
    - **分表分库**：对于极大的表，可以通过分表分库来减轻单一表的压力，提升查询效率。
 4. **查询缓存与数据库配置优化**
+
+### 慢 SQL 怎么排查
+
+1. 开启慢查询日志
+
+2. 分析慢查询日志
+
+   慢查询日志记录了执行时间超过阈值的 SQL 语句。可以使用以下工具来分析慢查询日志：
+
+   - **mysqldumpslow**：MySQL 自带的命令行工具，用于解析和汇总慢查询日志文件。例如：
+
+     ```bash
+     mysqldumpslow -s t -t 10 /path/to/your/slow.log
+     ```
+
+     这条命令会按执行时间排序，显示前 10 条最慢的查询。
+
+   - **pt-query-digest**：更强大的工具，可以提供详细的查询分析报告。例如：
+
+     ```bash
+     pt-query-digest /path/to/your/slow.log > query_report.txt
+     ```
+
+     这条命令会生成一个详细的查询分析报告。
+
+3. 使用 `EXPLAIN` 分析查询计划
+
+   如果 `EXPLAIN` 的输出中 `type` 列显示为 `ALL`，说明是全表扫描，没有使用索引
+
+4. 优化查询语句
+
+5. 使用 `SHOW PROCESSLIST` 查看当前执行的 SQL
+
+6. 调整数据库配置
 
 ## 性能调优
 
