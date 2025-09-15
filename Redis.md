@@ -21,7 +21,7 @@ ttl "SYSTEM_MONITOR_MAP"
 del "SYSTEM_MONITOR_MAP"
 ```
 
-## 面试题
+## Redis基础
 
 ### 什么是 Redis？
 
@@ -30,6 +30,23 @@ Redis（**RE**mote **DI**ctionary **S**erver）是一个基于 C 语言开发的
 为了满足不同的业务场景，Redis 内置了多种数据类型实现（比如 String、Hash、Sorted Set、Bitmap、HyperLogLog、GEO）。并且，Redis 还支持事务、持久化、Lua 脚本、发布订阅模型、多种开箱即用的集群方案（Redis Sentinel、Redis Cluster）。
 
 ![redis-overview-of-data-types-2023-09-28](assets/redis-overview-of-data-types-2023-09-28.jpg)
+
+## Redis 数据类型
+
+### ZSet
+
+Zset 类型（有序集合类型）相比于 Set 类型多了一个排序属性 score（分值），对于有序集合 ZSet 来说，每个存储元素相当于有两个值组成的，一个是有序集合的元素值，一个是排序值。
+
+有序集合保留了集合不能有重复成员的特性（分值可以重复），但不同的是，有序集合中的元素可以排序。
+
+#### 内部实现
+
+Zset 类型的底层数据结构是由**压缩列表或跳表**实现的：
+
+- 如果有序集合的**元素个数小于 128 个，并且每个元素的值小于 64 字节**时，Redis 会使用压缩列表作为 Zset 类型的底层数据结构； 
+- 如果有序集合的元素不满足上面的条件，Redis 会使用跳表作为 Zset 类型的底层数据结构； 
+
+在 Redis 7.0 中，压缩列表数据结构已经废弃了，交由 listpack 数据结构来实现了。
 
 ### Redis 持久化机制（重要）
 

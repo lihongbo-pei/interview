@@ -99,6 +99,20 @@ public boolean equals(Object anObject) {
 
 ## 集合
 
+### Java中有哪些集合类
+
+ Java中的集合类分为4大类，分别由4个接口来代表，它们是Set、List、Queue、Map。其中，Set、List、Queue、都继承自Collection接口。
+
+· Set代表无序的、元素不可重复的集合。
+
+· List代表有序的、元素可以重复的集合。
+
+· Queue代表先进先出（FIFO）的队列。
+
+· Map代表具有映射关系（key-value）的集合。
+
+ Java提供了众多集合的实现类，它们都是这些接口的直接或间接的实现类，其中比较常用的有：HashSet、TreeSet、ArrayList、LinkedList、ArrayDeque、HashMap、TreeMap等。
+
 ### List
 
 ####  ArrayList线程安全吗？把ArrayList变成线程安全有哪些方法？
