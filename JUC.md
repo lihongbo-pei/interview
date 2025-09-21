@@ -1,5 +1,81 @@
 # JUC并发编程
 
+## 多线程
+
+### 如何创建线程？
+
+一般来说，创建线程有很多种方式，例如继承`Thread`类、实现`Runnable`接口、实现`Callable`接口、使用线程池、使用`CompletableFuture`类等等。
+
+不过，这些方式其实并没有真正创建出线程。准确点来说，这些都属于是在 Java 代码中使用多线程的方法。
+
+严格来说，Java 就只有一种方式可以创建线程，那就是通过`new Thread().start()`创建。不管是哪种方式，最终还是依赖于`new Thread().start()`。
+
+> 2.实现Runnable接口
+
+如果一个类已经继承了其他类，就不能再继承Thread类，此时可以实现java.lang.Runnable接口。 实现Runnable接口需要重写run()方法，然后将此Runnable对象作为参数传递给Thread类的构造器，创建Thread对象后调用其start()方法启动线程。
+
+```java
+class MyRunnable implements Runnable {
+    @Override
+    public void run() {
+        // 线程执行的代码
+    }
+}
+
+public static void main(String[] args) {
+    Thread t = new Thread(new MyRunnable());
+    t.start();
+}
+```
+
+采用实现Runnable接口方式： 
+
+- 优点：线程类只是实现了Runable接口，还可以继承其他的类。在这种方式下，可以多个线程共享同一个目标对象，所以非常适合多个相同线程来处理同一份资源的情况，从而可以将CPU代码和数据分开，形成清晰的模型，较好地体现了面向对象的思想。 
+- 缺点：编程稍微复杂，如果需要访问当前线程，必须使用Thread.currentThread()方法。
+
+> 3. 实现Callable接口与FutureTask
+
+java.util.concurrent.Callable接口类似于Runnable，但**Callable的call()方法可以有返回值并且可以抛出异常**。要执行Callable任务，需将它包装进一个FutureTask，因为Thread类的构造器只接受 Runnable参数，而FutureTask实现了Runnable接口。
+
+```java
+class MyCallable implements Callable<Integer> {
+    @Override
+    public Integer call() throws Exception {
+        // 线程执行的代码，这里返回一个整型结果
+        return 1;
+    }
+}
+
+public static void main(String[] args) {
+    MyCallable task = new MyCallable();
+    FutureTask<Integer> futureTask = new FutureTask<>(task);
+    Thread t = new Thread(futureTask);
+    t.start();
+
+    try {
+        Integer result = futureTask.get();  // 获取线程执行结果
+        System.out.println("Result: " + result);
+    } catch (InterruptedException | ExecutionException e) {
+        e.printStackTrace();
+    }
+}
+```
+
+采用实现Callable接口方式：
+
+- 缺点：编程稍微复杂，如果需要访问当前线程，必须调用Thread.currentThread()方法。 
+- 优点：线程只是实现Runnable或实现Callable接口，还可以继承其他类。这种方式下，多个线程可以共享一个target对象，非常适合多线程处理同一份资源的情形。
+
+### Runnable和Callable的区别
+
+|          | Runable            | Callable                                                     |
+| -------- | ------------------ | ------------------------------------------------------------ |
+| 包名     | java.lang.Runnable | java.util.concurrent.Callable                                |
+| 方法     | run()              | call()，可以有返回值并且可以抛出异常                         |
+| 实现方式 | 直接扔给Thread类   | 需将它包装进一个FutureTask，因为Thread类的构造器只接受 Runnable参数 |
+
+
+
 ## 并发安全
 
 ### 怎么保证多线程安全？
@@ -72,7 +148,7 @@ int newValue = counter.incrementAndGet();
 
 ### 除了用synchronized，还有什么方法可以实现线程同步？
 
-- 使用 ReentrantLock 类：ReentrantLock 是一个可重入的互斥锁，相比 synchronized 提供了更灵活的锁定和解锁操作。它还支持公平锁和非公平锁，以及可以响应中断的锁获取操作。
+- 使用 **ReentrantLock** 类：ReentrantLock 是一个可重入的互斥锁，相比 synchronized 提供了更灵活的锁定和解锁操作。它还支持公平锁和非公平锁，以及可以响应中断的锁获取操作。
 - 使用 volatile 关键字：虽然 volatile 不是一种锁机制，但它可以确保变量的可见性。当一个变量被声明为 volatile 后，线程将直接从主内存中读取该变量的值，这样就能保证线程间变量的可见性。但它不具备原子性。
 - 使用 Atomic 类：Java提供了一系列的原子类，例如 AtomicInteger 、AtomicLong 、AtomicReference 等，用于实现对单个变量的原子操作，这些类在实现细节上利用了**CAS（Compare-And-Swap）**算法，可以用来实现无锁的线程安全。
 
@@ -149,6 +225,119 @@ volatile作用有 2 个：
 
 那什么是资源有序分配法呢？线程 A 和 线程 B 获取资源的顺序要一样，当线程 A 是先尝试获取资源 A，然后尝试获取资源 B 的时候，线程 B 同样也是先尝试获取资源 A，然后尝试获取资源 B。也就是说，线程 A 和 线程 B 总是以相同的顺序申请自己想要的资源。
 
+### ReentrantLock 是什么？
+
+`ReentrantLock` 实现了 `Lock` 接口，是一个可重入且独占式的锁，和 `synchronized` 关键字类似。不过，`ReentrantLock` 更灵活、更强大，增加了轮询、超时、中断、公平锁和非公平锁等高级功能。
+
+```java
+public class ReentrantLock implements Lock, java.io.Serializable {}
+```
+
+`ReentrantLock` 里面有一个内部类 `Sync`，`Sync` 继承 AQS（`AbstractQueuedSynchronizer`），添加锁和释放锁的大部分操作实际上都是在 `Sync` 中实现的。`Sync` 有公平锁 `FairSync` 和非公平锁 `NonfairSync` 两个子类。
+
+`ReentrantLock` 默认使用非公平锁，也可以通过构造器来显式的指定使用公平锁。
+
+```java
+// 传入一个 boolean 值，true 时为公平锁，false 时为非公平锁
+public ReentrantLock(boolean fair) {
+    sync = fair ? new FairSync() : new NonfairSync();
+}
+```
+
+### 公平锁和非公平锁有什么区别？
+
+- **公平锁** : 锁被释放之后，先申请的线程先得到锁。性能较差一些，因为公平锁为了保证时间上的绝对顺序，上下文切换更频繁。
+- **非公平锁**：锁被释放之后，后申请的线程可能会先获取到锁，是随机或者按照其他优先级排序的。性能更好，但可能会导致某些线程永远无法获取到锁。
+
+### ⭐️synchronized 和 ReentrantLock 有什么区别？
+
+#### 两者都是可重入锁
+
+**可重入锁** 也叫递归锁，指的是线程可以再次获取自己的内部锁。比如一个线程获得了某个对象的锁，此时这个对象锁还没有释放，当其再次想要获取这个对象的锁的时候还是可以获取的，如果是不可重入锁的话，就会造成死锁。
+
+JDK 提供的所有现成的 `Lock` 实现类，包括 `synchronized` 关键字锁都是可重入的。
+
+在下面的代码中，`method1()` 和 `method2()`都被 `synchronized` 关键字修饰，`method1()`调用了`method2()`。
+
+```java
+public class SynchronizedDemo {
+    public synchronized void method1() {
+        System.out.println("方法1");
+        method2();
+    }
+
+    public synchronized void method2() {
+        System.out.println("方法2");
+    }
+}
+```
+
+由于 `synchronized`锁是可重入的，同一个线程在调用`method1()` 时可以直接获得当前对象的锁，执行 `method2()` 的时候可以再次获取这个对象的锁，不会产生死锁问题。假如`synchronized`是不可重入锁的话，由于该对象的锁已被当前线程所持有且无法释放，这就导致线程在执行 `method2()`时获取锁失败，会出现死锁问题。
+
+#### synchronized 依赖于 JVM 而 ReentrantLock 依赖于 API
+
+`synchronized` 是依赖于 JVM 实现的，前面我们也讲到了 虚拟机团队在 JDK1.6 为 `synchronized` 关键字进行了很多优化，但是这些优化都是在虚拟机层面实现的，并没有直接暴露给我们。
+
+`ReentrantLock` 是 JDK 层面实现的（也就是 API 层面，需要 lock() 和 unlock() 方法配合 try/finally 语句块来完成），所以我们可以通过查看它的源代码，来看它是如何实现的。
+
+#### ReentrantLock 比 synchronized 增加了一些高级功能
+
+相比`synchronized`，`ReentrantLock`增加了一些高级功能。主要来说主要有三点：
+
+- **等待可中断** : `ReentrantLock`提供了一种能够中断等待锁的线程的机制，通过 `lock.lockInterruptibly()` 来实现这个机制。也就是说当前线程在等待获取锁的过程中，如果其他线程中断当前线程「 `interrupt()` 」，当前线程就会抛出 `InterruptedException` 异常，可以捕捉该异常进行相应处理。
+- **可实现公平锁** : `ReentrantLock`可以指定是公平锁还是非公平锁。而`synchronized`只能是非公平锁。所谓的公平锁就是先等待的线程先获得锁。`ReentrantLock`默认情况是非公平的，可以通过 `ReentrantLock`类的`ReentrantLock(boolean fair)`构造方法来指定是否是公平的。
+- **可实现选择性通知（锁可以绑定多个条件）**: `synchronized`关键字与`wait()`和`notify()`/`notifyAll()`方法相结合可以实现等待/通知机制。`ReentrantLock`类当然也可以实现，但是需要借助于`Condition`接口与`newCondition()`方法。
+- **支持超时** ：`ReentrantLock` 提供了 `tryLock(timeout)` 的方法，可以指定等待获取锁的最长等待时间，如果超过了等待时间，就会获取锁失败，不会一直等待。
+
+如果你想使用上述功能，那么选择 `ReentrantLock` 是一个不错的选择。
+
+## ⭐️JMM(Java 内存模型)
+
+
+
+## ⭐️乐观锁和悲观锁
+
+### 什么是悲观锁？
+
+悲观锁总是假设最坏的情况，认为共享资源每次被访问的时候就会出现问题(比如共享数据被修改)，所以每次在获取资源操作的时候都会上锁，这样其他线程想拿到这个资源就会阻塞直到锁被上一个持有者释放。也就是说，**共享资源每次只给一个线程使用，其它线程阻塞，用完后再把资源转让给其它线程**。
+
+像 Java 中`synchronized`和`ReentrantLock`等独占锁就是悲观锁思想的实现。
+
+```java
+public void performSynchronisedTask() {
+    synchronized (this) {
+        // 需要同步的操作
+    }
+}
+
+private Lock lock = new ReentrantLock();
+lock.lock();
+try {
+   // 需要同步的操作
+} finally {
+    lock.unlock();
+}
+```
+
+高并发的场景下，激烈的锁竞争会造成线程阻塞，大量阻塞线程会导致系统的上下文切换，增加系统的性能开销。并且，悲观锁还可能会存在**死锁**问题，影响代码的正常运行。
+
+### 什么是乐观锁？
+
+乐观锁总是假设最好的情况，认为共享资源每次被访问的时候不会出现问题，线程可以不停地执行，无需加锁也无需等待，**只是在提交修改的时候去验证对应的资源（也就是数据）是否被其它线程修改了**（具体方法可以使用版本号机制或 CAS 算法）。
+
+在 Java 中`java.util.concurrent.atomic`包下面的原子变量类（比如`AtomicInteger`、`LongAdder`）就是使用了乐观锁的一种实现方式 **CAS** 实现的。
+
+```java
+// LongAdder 在高并发场景下会比 AtomicInteger 和 AtomicLong 的性能更好
+// 代价就是会消耗更多的内存空间（空间换时间）
+LongAdder sum = new LongAdder();
+sum.increment();
+```
+
+高并发的场景下，乐观锁相比悲观锁来说，不存在锁竞争造成线程阻塞，也不会有死锁的问题，在性能上往往会更胜一筹。但是，如果冲突频繁发生（写占比非常多的情况），会频繁失败和重试，这样同样会非常影响性能，导致 CPU 飙升。
+
+
+
 ## 线程池
 
 ### 介绍一下线线程程池池的工作原理 
@@ -186,7 +375,18 @@ volatile作用有 2 个：
 - **workQueue**：工作队列。当没有空闲的线程执行新任务时，该任务就会被放入工作队列中，等待执行。
 
 - threadFactory：线程工厂。可以用来给线程取名字等等 
-- handler：拒绝策略。当一个新任务交给线线程程池池，如果此时线线程程池池中有空闲的线程，就会直接执行，如果没有空闲的线程，就会将该任务加入到阻塞队列中，如果阻塞队列满了，就会创建一 个新线程，从阻塞队列头部取出一个任务来执行，并将新任务加入到阻塞队列末尾。如果当前 线线程程池池中线程的数量等于maximumPoolSize，就不会创建新线程，就会去执行拒绝策略
+- handler：拒绝策略。当一个新任务交给线线程程池池，如果此时线线程程池池中有空闲的线程，就会直接执行，如果没有空闲的线程，就会将该任务加入到阻塞队列中，如果阻塞队列满了，就会创建一 个新线程，从阻塞队列头部取出一个任务来执行，并将新任务加入到阻塞队列末尾。如果当前线线程程池池中线程的数量等于maximumPoolSize，就不会创建新线程，就会去执行拒绝策略
+
+### ⭐️线程池的拒绝策略有哪些？
+
+如果当前同时运行的线程数量达到最大线程数量并且队列也已经被放满了任务时，`ThreadPoolExecutor` 定义一些策略:
+
+- `AbortPolicy`：抛出 `RejectedExecutionException`来拒绝新任务的处理。
+- `CallerRunsPolicy`：调用执行者自己的线程运行任务，也就是直接在调用`execute`方法的线程中运行(`run`)被拒绝的任务，如果执行程序已关闭，则会丢弃该任务。因此这种策略会降低对于新任务提交速度，影响程序的整体性能。如果你的应用程序可以承受此延迟并且你要求任何一个任务请求都要被执行的话，你可以选择这个策略。
+- `DiscardPolicy`：不处理新任务，直接丢弃掉。
+- `DiscardOldestPolicy`：此策略将丢弃最早的未处理的任务请求。
+
+举个例子：Spring 通过 `ThreadPoolTaskExecutor` 或者我们直接通过 `ThreadPoolExecutor` 的构造函数创建线程池的时候，当我们不指定 `RejectedExecutionHandler` 拒绝策略来配置线程池的时候，默认使用的是 `AbortPolicy`。在这种拒绝策略下，如果队列满了，`ThreadPoolExecutor` 将抛出 `RejectedExecutionException` 异常来拒绝新来的任务 ，这代表你将丢失对这个任务的处理。如果不想丢弃任务的话，可以使用`CallerRunsPolicy`。`CallerRunsPolicy` 和其他的几个策略不同，它既不会抛弃任务，也不会抛出异常，而是将任务回退给调用者，使用调用者的线程来执行任务。
 
 ## AQS
 

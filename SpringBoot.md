@@ -44,79 +44,48 @@ public CompletableFuture<Boolean> saveOperLog(SysOperlogInfo info) {
 
 ## Spring
 
-### Bean 的生命周期了解么?
+### 谈谈自己对于 Spring IoC 的了解
 
-1. **创建 Bean 的实例**：Bean 容器首先会找到配置文件中的 Bean 定义，然后使用 Java 反射 API 来创建 Bean 的实例。
+**IoC（Inversion of Control:控制反转）** 是一种设计思想，而不是一个具体的技术实现。IoC 的思想就是将原本在程序中手动创建对象的控制权，交由 Spring 框架来管理。不过， IoC 并非 Spring 特有，在其他语言中也有应用。
 
-2. **Bean 属性赋值/填充**：为 Bean 设置相关属性和依赖，例如`@Autowired` 等注解注入的对象、`@Value` 注入的值、`setter`方法或构造函数注入依赖和值、`@Resource`注入的各种资源。
+**为什么叫控制反转？**
 
-3. **Bean 初始化**： 
+- **控制**：指的是对象创建（实例化、管理）的权力
+- **反转**：控制权交给外部环境（Spring 框架、IoC 容器）
 
-- 如果 Bean 实现了 `BeanNameAware` 接口，调用 `setBeanName()`方法，传入 Bean 的名字。
-- 如果 Bean 实现了 `BeanClassLoaderAware` 接口，调用 `setBeanClassLoader()`方法，传入 `ClassLoader`对象的实例。
-- 如果 Bean 实现了 `BeanFactoryAware` 接口，调用 `setBeanFactory()`方法，传入 `BeanFactory`对象的实例。
-- 与上面的类似，如果实现了其他 `*.Aware`接口，就调用相应的方法。
-- 如果有和加载这个 Bean 的 Spring 容器相关的 `BeanPostProcessor` 对象，执行`postProcessBeforeInitialization()` 方法
-- 如果 Bean 实现了`InitializingBean`接口，执行`afterPropertiesSet()`方法。
-- 如果 Bean 在配置文件中的定义包含 `init-method` 属性，执行指定的方法。
-- 如果有和加载这个 Bean 的 Spring 容器相关的 `BeanPostProcessor` 对象，执行`postProcessAfterInitialization()` 方法。
+将对象之间的相互依赖关系交给 IoC 容器来管理，并由 IoC 容器完成对象的注入。这样可以很大程度上简化应用的开发，把应用从复杂的依赖关系中解放出来。 IoC 容器就像是一个工厂一样，当我们需要创建一个对象的时候，只需要配置好配置文件/注解即可，完全不用考虑对象是如何被创建出来的。
 
-4. **销毁 Bean**：销毁并不是说要立马把 Bean 给销毁掉，而是把 Bean 的销毁方法先记录下来，将来需要销毁 Bean 或者销毁容器的时候，就调用这些方法去释放 Bean 所持有的资源。 
+在实际项目中一个 Service 类可能依赖了很多其他的类，假如我们需要实例化这个 Service，你可能要每次都要搞清这个 Service 所有底层类的构造函数，这可能会把人逼疯。如果利用 IoC 的话，你只需要配置好，然后在需要的地方引用就行了，这大大增加了项目的可维护性且降低了开发难度。
 
-- 如果 Bean 实现了 `DisposableBean` 接口，执行 `destroy()` 方法。
-- 如果 Bean 在配置文件中的定义包含 `destroy-method` 属性，执行指定的 Bean 销毁方法。或者，也可以直接通过`@PreDestroy` 注解标记 Bean 销毁之前执行的方法。
+在 Spring 中， IoC 容器是 Spring 用来实现 IoC 的载体， IoC 容器**实际上就是个 Map（key，value）**，Map 中存放的是各种对象。
 
-![spring-bean-lifestyle](assets/spring-bean-lifestyle.png)
+Spring 时代我们一般通过 XML 文件来配置 Bean，后来开发人员觉得 XML 文件来配置不太好，于是 SpringBoot 注解配置就慢慢开始流行起来。
 
-### Spring事务什么时候会失效？
+### 什么是 Spring Bean？
 
-1. 方法不是 `public` 修饰的
-   - Spring AOP 默认是基于**代理**机制的，**只有 `public` 方法才能被代理增强**，也就只有 `public` 方法上的 `@Transactional` 注解才会生效。
-2. 方法调用是 **同类内部方法调用**（即自调用）
-   - 这是最常见的事务失效问题。Spring事务依赖于 AOP 代理，如果你在一个类的方法中**直接调用本类中另一个带有 `@Transactional` 注解的方法**，事务不会生效。
-3. 异常类型不匹配，事务没有回滚
-   - 默认情况下，Spring 只对 **运行时异常（`RuntimeException` 及其子类）和 Error** 进行回滚。
-4. 数据库不支持事务（或操作不在事务范围内）
-5. 事务方法执行在**线程池或异步线程**中
-6. 事务管理器没有配置或配置错误
-7. 数据库连接自动提交（autoCommit = true）
-8. 异常被捕获后没有重新抛出
+简单来说，Bean 代指的就是那些被 IoC 容器所管理的对象。
 
-### Spring 事务的传播行为有哪些？
+我们需要告诉 IoC 容器帮助我们管理哪些对象，这个是通过**配置元数据**来定义的。配置元数据可以是 XML 文件、注解或者 Java 配置类。
 
-**事务传播行为是为了解决业务层方法之间互相调用的事务问题**。
+```xml
+<!-- Constructor-arg with 'value' attribute -->
+<bean id="..." class="...">
+   <constructor-arg value="..."/>
+</bean>
+```
 
-当事务方法被另一个事务方法调用时，必须指定事务应该如何传播。例如：方法可能继续在现有事务中运行，也可能开启一个新事务，并在自己的事务中运行。
+下图简单地展示了 IoC 容器如何使用配置元数据来管理对象。
 
-正确的事务传播行为可能的值如下:
+![bean-1](assets/bean-1.jpg)
 
-**1.`TransactionDefinition.PROPAGATION_REQUIRED`**
+### 将一个类声明为 Bean 的注解有哪些?
 
-使用的最多的一个事务传播行为，我们平时经常使用的`@Transactional`注解默认使用就是这个事务传播行为。如果当前存在事务，则加入该事务；如果当前没有事务，则创建一个新的事务。
+- `@Component`：通用的注解，可标注任意类为 `Spring` 组件。如果一个 Bean 不知道属于哪个层，可以使用`@Component` 注解标注。
+- `@Repository` : 对应持久层即 Dao 层，主要用于数据库相关操作。
+- `@Service` : 对应服务层，主要涉及一些复杂的逻辑，需要用到 Dao 层。
+- `@Controller` : 对应 Spring MVC 控制层，主要用于接受用户请求并调用 `Service` 层返回数据给前端页面。
 
-**`2.TransactionDefinition.PROPAGATION_REQUIRES_NEW`**
-
-创建一个新的事务，如果当前存在事务，则把当前事务挂起。也就是说不管外部方法是否开启事务，`Propagation.REQUIRES_NEW`修饰的内部方法会**新开启自己的事务**，且开启的事务相互独立，互不干扰。
-
-**3.`TransactionDefinition.PROPAGATION_NESTED`**
-
-如果当前存在事务，则创建一个事务作为当前事务的**嵌套事务**来运行；如果当前没有事务，则该取值等价于`TransactionDefinition.PROPAGATION_REQUIRED`。
-
-**4.`TransactionDefinition.PROPAGATION_MANDATORY`**
-
-如果当前存在事务，则加入该事务；如果当前没有事务，则抛出异常。（mandatory：强制性）
-
-这个使用的很少。
-
-若是错误的配置以下 3 种事务传播行为，事务将不会发生回滚：
-
-- **`TransactionDefinition.PROPAGATION_SUPPORTS`**: 如果当前存在事务，则加入该事务；如果当前没有事务，则以非事务的方式继续运行。
-- **`TransactionDefinition.PROPAGATION_NOT_SUPPORTED`**: 以非事务方式运行，如果当前存在事务，则把当前事务挂起。
-- **`TransactionDefinition.PROPAGATION_NEVER`**: 以非事务方式运行，如果当前存在事务，则抛出异常。
-
-### Spring IOC
-
-#### @Autowired 和 @Resource 的区别是什么？
+### @Autowired 和 @Resource 的区别是什么？
 
 `Autowired` 属于 Spring 内置的注解，默认的注入方式为`byType`（根据类型进行匹配），也就是说会优先根据接口类型去匹配并注入 Bean （接口的实现类）。
 
@@ -166,6 +135,82 @@ private SmsService smsService;
 - `Autowired` 默认的注入方式为`byType`（根据类型进行匹配），`@Resource`默认注入方式为 `byName`（根据名称进行匹配）。
 - 当一个接口存在多个实现类的情况下，`@Autowired` 和`@Resource`都需要通过名称才能正确匹配到对应的 Bean。`Autowired` 可以通过 `@Qualifier` 注解来显式指定名称，`@Resource`可以通过 `name` 属性来显式指定名称。
 - `@Autowired` 支持在构造函数、方法、字段和参数上使用。`@Resource` 主要用于字段和方法上的注入，不支持在构造函数或参数上使用。
+
+### Bean 的生命周期了解么?
+
+1. **创建 Bean 的实例**：Bean 容器首先会找到配置文件中的 Bean 定义，然后使用 Java 反射 API 来创建 Bean 的实例。
+
+2. **Bean 属性赋值/填充**：为 Bean 设置相关属性和依赖，例如`@Autowired` 等注解注入的对象、`@Value` 注入的值、`setter`方法或构造函数注入依赖和值、`@Resource`注入的各种资源。
+
+3. **Bean 初始化**： 
+
+- 如果 Bean 实现了 `BeanNameAware` 接口，调用 `setBeanName()`方法，传入 Bean 的名字。
+- 如果 Bean 实现了 `BeanClassLoaderAware` 接口，调用 `setBeanClassLoader()`方法，传入 `ClassLoader`对象的实例。
+- 如果 Bean 实现了 `BeanFactoryAware` 接口，调用 `setBeanFactory()`方法，传入 `BeanFactory`对象的实例。
+- 与上面的类似，如果实现了其他 `*.Aware`接口，就调用相应的方法。
+- 如果有和加载这个 Bean 的 Spring 容器相关的 `BeanPostProcessor` 对象，执行`postProcessBeforeInitialization()` 方法
+- 如果 Bean 实现了`InitializingBean`接口，执行`afterPropertiesSet()`方法。
+- 如果 Bean 在配置文件中的定义包含 `init-method` 属性，执行指定的方法。
+- 如果有和加载这个 Bean 的 Spring 容器相关的 `BeanPostProcessor` 对象，执行`postProcessAfterInitialization()` 方法。
+
+4. **销毁 Bean**：销毁并不是说要立马把 Bean 给销毁掉，而是把 Bean 的销毁方法先记录下来，将来需要销毁 Bean 或者销毁容器的时候，就调用这些方法去释放 Bean 所持有的资源。 
+
+- 如果 Bean 实现了 `DisposableBean` 接口，执行 `destroy()` 方法。
+- 如果 Bean 在配置文件中的定义包含 `destroy-method` 属性，执行指定的 Bean 销毁方法。或者，也可以直接通过`@PreDestroy` 注解标记 Bean 销毁之前执行的方法。
+
+![spring-bean-lifestyle](assets/spring-bean-lifestyle.png)
+
+### 谈谈自己对于 AOP 的了解
+
+AOP(Aspect-Oriented Programming:面向切面编程)能够将那些与业务无关，却为业务模块所共同调用的逻辑或责任（例如事务处理、日志管理、权限控制等）封装起来，便于减少系统的重复代码，降低模块间的耦合度，并有利于未来的可拓展性和可维护性。
+
+Spring AOP 就是基于动态代理的，如果要代理的对象，实现了某个接口，那么 Spring AOP 会使用 **JDK Proxy**，去创建代理对象，而对于没有实现接口的对象，就无法使用 JDK Proxy 去进行代理了，这时候 Spring AOP 会使用 **Cglib** 生成一个被代理对象的子类来作为代理，如下图所示：
+
+### Spring事务什么时候会失效？
+
+1. 方法不是 `public` 修饰的
+   - Spring AOP 默认是基于**代理**机制的，**只有 `public` 方法才能被代理增强**，也就只有 `public` 方法上的 `@Transactional` 注解才会生效。
+2. 方法调用是 **同类内部方法调用**（即自调用）
+   - 这是最常见的事务失效问题。Spring事务依赖于 AOP 代理，如果你在一个类的方法中**直接调用本类中另一个带有 `@Transactional` 注解的方法**，事务不会生效。
+3. 异常类型不匹配，事务没有回滚
+   - 默认情况下，Spring 只对 **运行时异常（`RuntimeException` 及其子类）和 Error** 进行回滚。
+4. 数据库不支持事务（或操作不在事务范围内）
+5. 事务方法执行在**线程池或异步线程**中
+6. 事务管理器没有配置或配置错误
+7. 数据库连接自动提交（autoCommit = true）
+8. 异常被捕获后没有重新抛出
+
+### Spring 事务的传播行为有哪些？
+
+**事务传播行为是为了解决业务层方法之间互相调用的事务问题**。
+
+当事务方法被另一个事务方法调用时，必须指定事务应该如何传播。例如：方法可能继续在现有事务中运行，也可能开启一个新事务，并在自己的事务中运行。
+
+正确的事务传播行为可能的值如下:
+
+**1.`TransactionDefinition.PROPAGATION_REQUIRED`**
+
+使用的最多的一个事务传播行为，我们平时经常使用的`@Transactional`注解默认使用就是这个事务传播行为。如果当前存在事务，则加入该事务；如果当前没有事务，则创建一个新的事务。
+
+**`2.TransactionDefinition.PROPAGATION_REQUIRES_NEW`**
+
+创建一个新的事务，如果当前存在事务，则把当前事务挂起。也就是说不管外部方法是否开启事务，`Propagation.REQUIRES_NEW`修饰的内部方法会**新开启自己的事务**，且开启的事务相互独立，互不干扰。
+
+**3.`TransactionDefinition.PROPAGATION_NESTED`**
+
+如果当前存在事务，则创建一个事务作为当前事务的**嵌套事务**来运行；如果当前没有事务，则该取值等价于`TransactionDefinition.PROPAGATION_REQUIRED`。
+
+**4.`TransactionDefinition.PROPAGATION_MANDATORY`**
+
+如果当前存在事务，则加入该事务；如果当前没有事务，则抛出异常。（mandatory：强制性）
+
+这个使用的很少。
+
+若是错误的配置以下 3 种事务传播行为，事务将不会发生回滚：
+
+- **`TransactionDefinition.PROPAGATION_SUPPORTS`**: 如果当前存在事务，则加入该事务；如果当前没有事务，则以非事务的方式继续运行。
+- **`TransactionDefinition.PROPAGATION_NOT_SUPPORTED`**: 以非事务方式运行，如果当前存在事务，则把当前事务挂起。
+- **`TransactionDefinition.PROPAGATION_NEVER`**: 以非事务方式运行，如果当前存在事务，则抛出异常。
 
 ### AOP
 

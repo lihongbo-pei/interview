@@ -230,7 +230,7 @@ Token 是⁠大模型处理文本的基本单位，可‌能是单词或标点�
 - 文本对话：[Authropic 提示词库](https://docs.anthropic.com/zh-CN/prompt-library/library)
 - AI 绘画：[Midjourney 提示词库](https://promptlibrary.org/)
 
-鱼皮汇总了来自⁠ OpenAI、Anthro‌pic、智谱 AI 等主流 AI 服务商的提示工程最佳实‎践，给大家整理了一份完备的 ‌Prompt 优化技巧。
+汇总了来自⁠ OpenAI、Anthro‌pic、智谱 AI 等主流 AI 服务商的提示工程最佳实‎践，给大家整理了一份完备的 ‌Prompt 优化技巧。
 
 ### 基础提示技巧
 

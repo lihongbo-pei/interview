@@ -75,6 +75,38 @@ grep -r "fonnectionTimeout" /var/log//
 
 ### 说一说常用的 Linux 命令
 
+1、kill
+
+```bash
+kill [选项] 进程ID
+```
+
+常用选项：
+
+- `-n<信号编号` ：通过信号编号发送信号。
+
+示例：
+
+```bash
+# 向进程 ID 为 1234 的进程发送 SIGKILL 信号，强制终止进程。
+kill -9 1234
+```
+
+2、chmod
+
+```bash
+chmod [选项] 模式 文件或目录
+```
+
+示例：
+
+```bash
+# 将文件或目录的权限设置为所有用户（所有者、所属组、其他用户）都拥有读（r）、写（w）和执行（x）权限。
+chmod 777 file.txt
+```
+
+3、其他常用命令
+
 - cd     切换目录
 - pwd     显示当前工作目录
 - touch   创建空文件
@@ -104,3 +136,21 @@ grep -r "fonnectionTimeout" /var/log//
 
 - ln    建立链接文件
 - scp 远程传输文件
+
+data.txt
+
+```
+apple,5
+banana,10
+orange,8
+```
+
+将文件 "data.txt" 中每一行的逗号替换为冒号，并输出每一行的第一个字段
+
+```bash
+# sed（stream editor）
+sed 's/,/:/' data.txt | awk -F: '{print $1}'
+```
+
+- `'s/,/:/'`：这是一个替换命令，格式为 `s/原字符串/新字符串/`。在这里，它将文件中的所有逗号（`,`）替换为冒号（`:`）。
+- `-F:`：指定了字段分隔符为冒号（`:`）。`awk` 默认使用空格作为字段分隔符。
