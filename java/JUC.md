@@ -388,6 +388,16 @@ sum.increment();
 
 举个例子：Spring 通过 `ThreadPoolTaskExecutor` 或者我们直接通过 `ThreadPoolExecutor` 的构造函数创建线程池的时候，当我们不指定 `RejectedExecutionHandler` 拒绝策略来配置线程池的时候，默认使用的是 `AbortPolicy`。在这种拒绝策略下，如果队列满了，`ThreadPoolExecutor` 将抛出 `RejectedExecutionException` 异常来拒绝新来的任务 ，这代表你将丢失对这个任务的处理。如果不想丢弃任务的话，可以使用`CallerRunsPolicy`。`CallerRunsPolicy` 和其他的几个策略不同，它既不会抛弃任务，也不会抛出异常，而是将任务回退给调用者，使用调用者的线程来执行任务。
 
+### 核心线程数设置为0可不可以？
+
+> 美的二面
+
+可以，当核心线程数为0的时候，会创建一个非核心线程进行执行。
+
+从下面的源码也可以看到，当核心线程数为 0 时，来了一个任务之后，会先将任务添加到**任务队列**，同时也会判断当前工作的线程数是否为 0，如果为 0，则会创建线程来执行线程池的任务。
+
+![image-20240820113849549](assets/image-20240820113849549.png)
+
 ## AQS
 
 ### AQS 是什么？

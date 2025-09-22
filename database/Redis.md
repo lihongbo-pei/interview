@@ -31,6 +31,46 @@ Redis（**RE**mote **DI**ctionary **S**erver）是一个基于 C 语言开发的
 
 ![redis-overview-of-data-types-2023-09-28](assets/redis-overview-of-data-types-2023-09-28.jpg)
 
+### Redis 为什么这么快？
+
+Redis 内部做了非常多的性能优化，比较重要的有下面 4 点：
+
+1. 纯内存操作 (Memory-Based Storage) ：这是最主要的原因。Redis 数据读写操作都发生在内存中，访问速度是纳秒级别，而传统数据库频繁读写磁盘的速度是毫秒级别，两者相差数个数量级。
+
+2. 高效的 I/O 模型 (I/O Multiplexing & Single-Threaded Event Loop) ：Redis 使用**单线程**事件循环配合 **I/O 多路复用**技术，让单个线程可以同时处理多个网络连接上的 I/O 事件（如读写），避免了多线程模型中的上下文切换和锁竞争问题。虽然是单线程，但结合内存操作的高效性和 I/O 多路复用，使得 Redis 能轻松处理大量并发请求（Redis 线程模型会在后文中详细介绍到）。
+
+3. 优化的内部数据结构 (Optimized Data Structures) ：Redis 提供多种数据类型（如 String, List, Hash, Set, Sorted Set 等），其内部实现采用高度优化的编码方式（如 ziplist, quicklist, skiplist, hashtable 等）。Redis 会根据数据大小和类型动态选择最合适的内部编码，以在性能和空间效率之间取得最佳平衡。
+
+4. 简洁高效的通信协议 (Simple Protocol - RESP) ：Redis 使用的是自己设计的 RESP (REdis Serialization Protocol) 协议。这个协议实现简单、解析性能好，并且是二进制安全的。客户端和服务端之间通信的序列化/反序列化开销很小，有助于提升整体的交互速度。
+
+### Redis 除了做缓存，还能做什么？
+
+> 美的二面
+
+- **分布式锁**：通过 Redis 来做分布式锁是一种比较常见的方式。通常情况下，我们都是基于 **Redisson** 来实现分布式锁。
+- **限流**：一般是通过 Redis + Lua 脚本的方式来实现限流。如果不想自己写 Lua 脚本的话，也可以直接利用 Redisson 中的 `RRateLimiter` 来实现分布式限流，其底层实现就是基于 Lua 代码+令牌桶算法。
+- **消息队列**：Redis 自带的 List 数据结构可以作为一个简单的队列使用。Redis 5.0 中增加的 Stream 类型的数据结构更加适合用来做消息队列。它比较类似于 Kafka，有主题和消费组的概念，支持消息持久化以及 ACK 机制。
+- **延时队列**：Redisson 内置了延时队列（基于 Sorted Set 实现的）。
+- **分布式 Session**：利用 String 或者 Hash 数据类型保存 Session 数据，所有的服务器都可以访问。
+- **复杂业务场景**：通过 Redis 以及 Redis 扩展（比如 Redisson）提供的数据结构，我们可以很方便地完成很多复杂的业务场景，比如通过 Bitmap 统计活跃用户、通过 Sorted Set 维护排行榜、通过 HyperLogLog 统计网站 UV 和 PV。
+- ……
+
+### 如何基于 Redis 实现一个最简易的分布式锁？
+
+不论是本地锁还是分布式锁，核心都在于“互斥”。
+
+在 Redis 中， `SETNX` 命令是可以帮助我们实现互斥。`SETNX` 即 **SET** if **N**ot e**X**ists (对应 Java 中的 `setIfAbsent` 方法)，如果 key 不存在的话，才会设置 key 的值。如果 key 已经存在， `SETNX` 啥也不做。
+
+释放锁的话，直接通过 `DEL` 命令删除对应的 key 即可。
+
+为了防止误删到其他的锁，这里我们建议使用 Lua 脚本通过 key 对应的 value（唯一值）来判断。
+
+选用 Lua 脚本是为了保证解锁操作的原子性。因为 Redis 在执行 Lua 脚本时，可以以**原子性**的方式执行，从而保证了锁释放操作的原子性。
+
+![distributed-lock-setnx](assets/distributed-lock-setnx.png)
+
+
+
 ## Redis 数据类型
 
 ### Redis 常用的数据类型有哪些？
@@ -156,13 +196,16 @@ aof-use-rdb-preamble yes
 ## Redis生产问题
 
 ### 缓存穿透、击穿和雪崩
+
+> 美的二面
+
 #### 什么是缓存穿透？
 
 缓存穿透说简单点就是大量请求的 key 是不合理的，**根本不存在于缓存中，也不存在于数据库中**。这就导致这些请求直接到了数据库上，根本没有经过缓存这一层，对数据库造成了巨大的压力，可能直接就被这么多请求弄宕机了。
 
 举个例子：某个黑客故意制造一些非法的 key 发起大量请求，导致大量请求落到数据库，结果数据库上也没有查到对应的数据。也就是说这些请求最终都落到了数据库上，对数据库造成了巨大的压力。
 
-有哪些解决办法？
+**有哪些解决办法？**
 
 最基本的就是首先做好参数校验，一些不合法的参数请求直接抛出异常信息返回给客户端。比如查询的数据库 id 不能小于 0、传入的邮箱格式不对的时候直接返回错误消息给客户端等等。
 
