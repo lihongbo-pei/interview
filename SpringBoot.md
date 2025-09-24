@@ -138,11 +138,13 @@ private SmsService smsService;
 
 ### Bean 的生命周期了解么?
 
-1. **创建 Bean 的实例**：Bean 容器首先会找到配置文件中的 Bean 定义，然后使用 Java 反射 API 来创建 Bean 的实例。
+1. 创建 Bean 的实例：Bean 容器首先会找到配置文件中的 Bean 定义，然后**使用 Java 反射 API 来创建 Bean 的实例**。
 
-2. **Bean 属性赋值/填充**：为 Bean 设置相关属性和依赖，例如`@Autowired` 等注解注入的对象、`@Value` 注入的值、`setter`方法或构造函数注入依赖和值、`@Resource`注入的各种资源。
+2. Bean 属性赋值/填充：为 Bean 设置相关属性和依赖，例如`@Autowired` 等注解注入的对象、`@Value` 注入的值、`setter`方法或构造函数注入依赖和值、`@Resource`注入的各种资源。
 
-3. **Bean 初始化**： 
+3. **Bean 初始化**：
+
+   最先执行一堆 Aware 接口，让 Bean 知道自己是谁，在哪个工厂里 
 
 - 如果 Bean 实现了 `BeanNameAware` 接口，调用 `setBeanName()`方法，传入 Bean 的名字。
 - 如果 Bean 实现了 `BeanClassLoaderAware` 接口，调用 `setBeanClassLoader()`方法，传入 `ClassLoader`对象的实例。
@@ -290,3 +292,4 @@ public class AppConfig { ... }
 @Around("execution(public com.littlelee.base.common.util.ApiResult *(..))")
 ```
 
+ 

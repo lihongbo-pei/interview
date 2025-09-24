@@ -193,6 +193,41 @@ Spring Boot 3 已经升级到 **Spring Security 6**
      - **异步认证**：对于一些复杂的认证逻辑，可以使用异步认证来减少主线程的阻塞。
      - **优化过滤器链**：只在必要时启用某些过滤器，减少不必要的处理。
 
+### Token是怎么生成的？
+
+> 经纬恒润一面
+
+> 参考链接：https://blog.csdn.net/u013737132/article/details/134024381
+>
+> 开源微服务商城项目 youlai-mall：https://gitee.com/youlaitech/youlai-mall
+
+Spring Security OAuth2 的最终版本是2.5.2，并于2022年6月5日正式宣布停止维护。Spring 官方为此推出了新的替代产品，即 **Spring Authorization Server**。然而，出于安全考虑，Spring Authorization Server **不再支持密码模式**，因为密码模式要求客户端直接处理用户的密码。但对于受信任的第一方系统(自有APP和管理系统等)，许多情况下需要使用密码模式。在这种情况下，需要在 Spring Authorization Server 的基础上扩展密码模式的支持。本文基于开源微服务商城项目 youlai-mall、Spring Boot 3 和 Spring Authorization Server 1.1 版本，演示了如何扩展密码模式，以及如何将其应用于 Spring Cloud 微服务实战。
+
+
+- 令牌发放记录表: [oauth2-authorization-schema.sql](https://github.com/spring-projects/spring-authorization-server/blob/main/oauth2-authorization-server/src/main/resources/org/springframework/security/oauth2/server/authorization/oauth2-authorization-schema.sql)
+- 授权记录表: [oauth2-authorization-consent-schema.sql](https://blog.csdn.net/u013737132/article/details/oauth2-authorization-consent-schema.sql)
+- 客户端信息表: [oauth2-registered-client-schema.sql](https://github.com/spring-projects/spring-authorization-server/blob/main/oauth2-authorization-server/src/main/resources/org/springframework/security/oauth2/server/authorization/client/oauth2-registered-client-schema.sql)
+
+token生成流程：
+
+1、创建一个PasswordAuthenticationProvider类，实现AuthenticationProvider接口，重写authenticate方法
+
+2、创建一个OAuth2TokenGenerator的实例tokenGenerator
+
+3、tokenGenerator调用generate方法，在该方法中传入tokenContext参数，生成一个OAuth2Token类型的generatedAccessToken
+
+4、把generatedAccessToken中的信息封装到OAuth2AccessToken
+
+```java
+OAuth2Token generatedAccessToken = this.tokenGenerator.generate(tokenContext);
+
+OAuth2AccessToken accessToken = new OAuth2AccessToken(OAuth2AccessToken.TokenType.BEARER,
+                generatedAccessToken.getTokenValue(), generatedAccessToken.getIssuedAt(),
+                generatedAccessToken.getExpiresAt(), tokenContext.getAuthorizedScopes());
+```
+
+
+
 ### 关于 OAuth 2.0
 
 #### 基础理论
@@ -211,14 +246,3 @@ Spring Boot 3 已经升级到 **Spring Security 6**
 ```
 
 
-
-> https://blog.csdn.net/u013737132/article/details/134024381
->
-> 开源微服务商城项目 youlai-mall：https://gitee.com/youlaitech/youlai-mall
-
-Spring Security OAuth2 的最终版本是2.5.2，并于2022年6月5日正式宣布停止维护。Spring 官方为此推出了新的替代产品，即 **Spring Authorization Server**。然而，出于安全考虑，Spring Authorization Server **不再支持密码模式**，因为密码模式要求客户端直接处理用户的密码。但对于受信任的第一方系统(自有APP和管理系统等)，许多情况下需要使用密码模式。在这种情况下，需要在 Spring Authorization Server 的基础上扩展密码模式的支持。本文基于开源微服务商城项目 youlai-mall、Spring Boot 3 和 Spring Authorization Server 1.1 版本，演示了如何扩展密码模式，以及如何将其应用于 Spring Cloud 微服务实战。
-
-
-- 令牌发放记录表: [oauth2-authorization-schema.sql](https://github.com/spring-projects/spring-authorization-server/blob/main/oauth2-authorization-server/src/main/resources/org/springframework/security/oauth2/server/authorization/oauth2-authorization-schema.sql)
-- 授权记录表: [oauth2-authorization-consent-schema.sql](https://blog.csdn.net/u013737132/article/details/oauth2-authorization-consent-schema.sql)
-- 客户端信息表: [oauth2-registered-client-schema.sql](https://github.com/spring-projects/spring-authorization-server/blob/main/oauth2-authorization-server/src/main/resources/org/springframework/security/oauth2/server/authorization/client/oauth2-registered-client-schema.sql)

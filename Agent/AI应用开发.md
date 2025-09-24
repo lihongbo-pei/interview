@@ -822,9 +822,9 @@ Spring AI Message 的类图：
 2）在根包下新建 `chatmemory` 包，编写基于文件持久化的对话记忆 FileBasedChatMemory，代码如下：
 
 ```
-pu⁠blic class ‌FileBasedChatMemory im‎plements Ch‌atMemory {
+pu⁠blic class FileBasedChatMemory implements ChatMemory {
 
-    priv⁠ate final Strin‌g BASE_DIR;
+    priv⁠ate final String BASE_DIR;
     private static‎ final Kryo kry‌o = new Kryo();
 
     static {
