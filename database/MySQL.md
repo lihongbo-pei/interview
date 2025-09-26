@@ -2,6 +2,18 @@
 
 ## 语法
 
+### 基本
+
+> 经纬恒润二面
+
+```sql
+INSERT INTO 表名 (列1, 列2, ..., 列n) VALUES (值1, 值2, ..., 值n);
+
+UPDATE 表名 SET 列1 = 值1, 列2 = 值2, ..., 列n = 值n WHERE 条件;
+```
+
+
+
 ### LIMIT
 
 ```sql
@@ -47,6 +59,13 @@ select name, sum(score) as total_score from tbname group by name order by total_
 
 # 查询所有课程的平均成绩
 select subject, avg(score) as avg_score from tbname group by subject;
+
+# 查询出总分前三的学生的 name 和总分
+SELECT name, SUM(score) AS total_score
+FROM students
+GROUP BY name
+ORDER BY total_score DESC
+LIMIT 3;
 ```
 
 #### Having
