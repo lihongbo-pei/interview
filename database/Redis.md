@@ -33,6 +33,8 @@ Redis（**RE**mote **DI**ctionary **S**erver）是一个基于 C 语言开发的
 
 ### Redis 为什么这么快？
 
+> 科大讯飞
+
 Redis 内部做了非常多的性能优化，比较重要的有下面 4 点：
 
 1. 纯内存操作 (Memory-Based Storage) ：这是最主要的原因。Redis 数据读写操作都发生在内存中，访问速度是纳秒级别，而传统数据库频繁读写磁盘的速度是毫秒级别，两者相差数个数量级。
@@ -41,7 +43,7 @@ Redis 内部做了非常多的性能优化，比较重要的有下面 4 点：
 
 3. 优化的内部数据结构 (Optimized Data Structures) ：Redis 提供多种数据类型（如 String, List, Hash, Set, Sorted Set 等），其内部实现采用高度优化的编码方式（如 ziplist, quicklist, skiplist, hashtable 等）。Redis 会根据数据大小和类型动态选择最合适的内部编码，以在性能和空间效率之间取得最佳平衡。
 
-4. 简洁高效的通信协议 (Simple Protocol - RESP) ：Redis 使用的是自己设计的 RESP (REdis Serialization Protocol) 协议。这个协议实现简单、解析性能好，并且是二进制安全的。客户端和服务端之间通信的序列化/反序列化开销很小，有助于提升整体的交互速度。
+4. 简洁高效的通信协议 (Simple Protocol - RESP) ：Redis 使用的是自己设计的 **RESP (REdis Serialization Protocol) 协议**。这个协议实现简单、解析性能好，并且是二进制安全的。客户端和服务端之间通信的序列化/反序列化开销很小，有助于提升整体的交互速度。
 
 ### Redis 除了做缓存，还能做什么？
 
@@ -82,6 +84,57 @@ Zset 类型的底层数据结构是由**压缩列表或跳表**实现的：
 - 如果有序集合的元素不满足上面的条件，Redis 会使用跳表作为 Zset 类型的底层数据结构； 
 
 在 Redis 7.0 中，压缩列表数据结构已经废弃了，交由 **listpack** 数据结构来实现了。
+
+### BitMap
+
+> 科大讯飞
+
+**介绍**
+
+Bitmap，即位图，是一串连续的二进制数组（0和1），可以通过**偏移量（offset）**定位元素。BitMap通过最小的单位bit来进行`0|1`的设置，表示某个元素的值或者状态，时间复杂度为O(1)。
+
+由于 bit 是计算机中最小的单位，使用它进行储存将非常节省空间，特别适合一些数据量大且使用**二值统计的场景**。
+
+![bitmap](assets/bitmap.png)
+
+**应用场景**
+
+1、签到统计
+
+签到统计时，每个用户一天的签到用 1 个 bit 位就能表示，一个月（假设是 31 天）的签到情况用 31 个 bit 位就可以，而一年的签到也只需要用 365 个 bit 位，根本不用太复杂的集合类型。
+
+```bash
+# 记录该用户 6 月 3 号已签到
+SETBIT uid:sign:100:202206 2 1
+# 检查该用户 6 月 3 日是否签到
+GETBIT uid:sign:100:202206 2 
+# 统计该用户在 6 月份的签到次数
+BITCOUNT uid:sign:100:202206
+# 统计这个月首次打卡时间
+BITPOS uid:sign:100:202206 1
+```
+
+2、判断用户登陆态
+
+```bash
+# 执行以下指令，表示用户已登录
+SETBIT login_status 10086 1
+# 检查该用户是否登陆，返回值 1 表示已登录
+GETBIT login_status 10086
+# 登出，将 offset 对应的 value 设置成 0
+SETBIT login_status 10086 0
+```
+
+3、连续签到用户总数
+
+如何统计出这连续 3 天连续打卡用户总数呢？
+
+```bash
+# 与操作
+BITOP AND destmap bitmap:01 bitmap:02 bitmap:03
+# 统计 bit 位 =  1 的个数
+BITCOUNT destmap
+```
 
 ### GEO
 

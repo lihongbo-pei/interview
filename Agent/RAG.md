@@ -29,7 +29,7 @@ RAG（Retr⁠ieval-Augmented ‌Generation，检索增强生成）是一种结�
 
 ### RAG 工作流程
 
-RAG 技⁠术实现主要包含以下‌ 4 个核心步骤，让我们分步来学习：
+RAG 技⁠术实现主要包含以下‌ 4 个核心步骤：
 
 - 文档收集和切割
 - 向量转换和存储
@@ -329,7 +329,7 @@ public String doChatWithRag(String message, String chatId) {
 
 编写单元测试代码，故意提问一个文档内有回答的问题：
 
-```
+```java
 @Test
 void doChatWithRag() {
     String chatId = UUID.randomUUID().toString();

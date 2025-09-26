@@ -404,6 +404,8 @@ sum.increment();
 
 ### ⭐️线程池的拒绝策略有哪些？
 
+> 科大讯飞
+
 如果当前同时运行的线程数量达到最大线程数量并且队列也已经被放满了任务时，`ThreadPoolExecutor` 定义一些策略:
 
 - `AbortPolicy`：抛出 `RejectedExecutionException`来拒绝新任务的处理。
@@ -411,7 +413,23 @@ sum.increment();
 - `DiscardPolicy`：不处理新任务，直接丢弃掉。
 - `DiscardOldestPolicy`：此策略将丢弃最早的未处理的任务请求。
 
-举个例子：Spring 通过 `ThreadPoolTaskExecutor` 或者我们直接通过 `ThreadPoolExecutor` 的构造函数创建线程池的时候，当我们不指定 `RejectedExecutionHandler` 拒绝策略来配置线程池的时候，默认使用的是 `AbortPolicy`。在这种拒绝策略下，如果队列满了，`ThreadPoolExecutor` 将抛出 `RejectedExecutionException` 异常来拒绝新来的任务 ，这代表你将丢失对这个任务的处理。如果不想丢弃任务的话，可以使用`CallerRunsPolicy`。`CallerRunsPolicy` 和其他的几个策略不同，它既不会抛弃任务，也不会抛出异常，而是将任务回退给调用者，使用调用者的线程来执行任务。
+举个例子：Spring 通过 `ThreadPoolTaskExecutor` 或者我们直接通过 `ThreadPoolExecutor` 的构造函数创建线程池的时候，当我们不指定 `RejectedExecutionHandler` 拒绝策略来配置线程池的时候，默认使用的是 `AbortPolicy`。在这种拒绝策略下，如果队列满了，`ThreadPoolExecutor` 将抛出 `RejectedExecutionException` 异常来拒绝新来的任务 ，这代表你将丢失对这个任务的处理。
+
+如果**不想丢弃任务**的话，可以使用`CallerRunsPolicy`。`CallerRunsPolicy` 和其他的几个策略不同，它既不会抛弃任务，也不会抛出异常，而是将任务回退给调用者，使用调用者的线程来执行任务。
+
+```java
+public static class CallerRunsPolicy implements RejectedExecutionHandler {
+
+        public CallerRunsPolicy() { }
+
+        public void rejectedExecution(Runnable r, ThreadPoolExecutor e) {
+            if (!e.isShutdown()) {
+                // 直接主线程执行，而不是线程池中的线程执行
+                r.run();
+            }
+        }
+    }
+```
 
 ### 核心线程数设置为0可不可以？
 

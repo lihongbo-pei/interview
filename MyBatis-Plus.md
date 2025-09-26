@@ -37,7 +37,9 @@ MyBatis Plus 不支持复合主键并强制使用唯一的 ID，这是出于以�
 
 ### #{} 和 ${} 的区别是什么？
 
-- `${}`是 Properties 文件中的变量占位符，它可以用于标签属性值和 sql 内部，属于原样文本替换，可以替换任意内容，比如${driver}会被原样替换为`com.mysql.jdbc. Driver`。
+> 科大讯飞
+
+- `${}`是 Properties 文件中的**变量占位符**，它可以用于标签属性值和 sql 内部，属于原样文本替换，可以替换任意内容，比如${driver}会被原样替换为`com.mysql.jdbc. Driver`。
 
 一个示例：根据参数按任意字段排序：
 
@@ -47,7 +49,7 @@ select * from users order by ${orderCols}
 
 `orderCols`可以是 `name`、`name desc`、`name,sex asc`等，实现灵活的排序。
 
-- `#{}`是 sql 的参数占位符，MyBatis 会将 sql 中的`#{}`替换为? 号，在 sql 执行前会使用 PreparedStatement 的参数设置方法，按序给 sql 的? 号占位符设置参数值，比如 ps.setInt(0, parameterValue)，`#{item.name}` 的取值方式为使用反射从参数对象中获取 item 对象的 name 属性值，相当于 `param.getItem().getName()`。
+- `#{}`是 sql 的**参数占位符**，MyBatis 会将 sql 中的`#{}`替换为? 号，在 sql 执行前会使用 PreparedStatement 的参数设置方法，按序给 sql 的? 号占位符设置参数值，比如 ps.setInt(0, parameterValue)，`#{item.name}` 的取值方式为使用反射从参数对象中获取 item 对象的 name 属性值，相当于 `param.getItem().getName()`。
 
 > `#{}` 是安全的，它可以有效防止 SQL 注入。
 
