@@ -30,8 +30,19 @@ LIMIT offset, row_count;
 
 ### LEFT JOIN 和 RIGHT JOIN
 
+> 招银科技笔试
+
 - 左连接返回左表（主表）的所有记录，即使这些记录在右表中没有匹配的记录。如果左表的某条记录在右表中没有匹配，则右表的字段在结果集中会显示为 `NULL`。
 - 右连接返回右表（主表）的所有记录，即使这些记录在左表中没有匹配的记录。如果右表的某条记录在左表中没有匹配，则左表的字段在结果集中会显示为 `NULL`。
+
+```sql
+SELECT O.order, C.name 
+FROM orders O LEFT JION customers C 
+ON O.customer_id = C.id 
+WHERE O.amount > 1000 AND C.city = 'HANGZHOU';
+```
+
+若订单定额>1000但客户城市非杭州，该记录会出现在结果中吗？ 不会
 
 ### 在SQL中，为什么建议在大表上避免频繁使用DELETE操作而推荐使用TRUNCATE？
 
@@ -145,8 +156,6 @@ MyISAM 不提供事务支持。
 
 InnoDB 提供事务支持，实现了 SQL 标准定义了四个隔离级别，具有提交(commit)和回滚(rollback)事务的能力。并且，InnoDB 默认使用的 REPEATABLE-READ（可重读）隔离级别是可以解决幻读问题发生的（基于 MVCC 和 Next-Key Lock）。
 
-关于 MySQL 事务的详细介绍，可以看看我写的这篇文章：[MySQL 事务隔离级别详解]()。
-
 **3、是否支持外键**
 
 MyISAM 不支持，而 InnoDB 支持。
@@ -169,15 +178,13 @@ MyISAM 不支持，而 InnoDB 支持。
 
 MyISAM 不支持，而 InnoDB 支持。
 
-讲真，这个对比有点废话，毕竟 MyISAM 连行级锁都不支持。MVCC 可以看作是行级锁的一个升级，可以有效减少加锁操作，提高性能。
+MVCC 可以看作是行级锁的一个升级，可以有效减少加锁操作，提高性能。
 
 **6、索引实现不一样。**
 
 虽然 MyISAM 引擎和 InnoDB 引擎都是使用 B+Tree 作为索引结构，但是两者的实现方式不太一样。
 
 InnoDB 引擎中，其数据文件本身就是索引文件。相比 MyISAM，索引文件和数据文件是分离的，其表数据文件本身就是按 B+Tree 组织的一个索引结构，树的叶节点 data 域保存了完整的数据记录。
-
-详细区别，推荐你看看我写的这篇文章：[MySQL 索引详解]()。
 
 **7、性能有差别。**
 
@@ -196,8 +203,6 @@ InnoDB 使用缓冲池（Buffer Pool）缓存数据页和索引页，MyISAM 使�
 - 虽然 MyISAM 引擎和 InnoDB 引擎都是使用 B+Tree 作为索引结构，但是两者的实现方式不太一样。
 - MyISAM 不支持数据库异常崩溃后的安全恢复，而 InnoDB 支持。
 - InnoDB 的性能比 MyISAM 更强大。
-
-最后，再分享一张图片给你，这张图片详细对比了常见的几种 MySQL 存储引擎。
 
 ## 索引
 
@@ -272,8 +277,7 @@ B 树也称 B- 树，全称为 **多路平衡查找树**，B+ 树是 B 树的一
 
 覆盖索引即**需要查询的字段正好是索引的字段**，那么直接根据该索引，就可以查到数据了，而无需回表查询。
 
-> 如主键索引，如果一条 SQL 需要查询主键，那么正好根据主键索引就可以查到主键。再如普通索引，如果一条 SQL 需要查询 name，name 字段正好有索引，
-> 那么直接根据这个索引就可以查到数据，也无需回表。
+如主键索引，如果一条 SQL 需要查询主键，那么正好根据主键索引就可以查到主键。再如普通索引，如果一条 SQL 需要查询 name，name 字段正好有索引，那么直接根据这个索引就可以查到数据，也无需回表。
 
 以 `score` 和 `name` 两个字段建立联合索引：
 
@@ -461,7 +465,33 @@ lock tables t_stuent write;
 
 ## 日志
 
+### redo log
 
+![redo_log_1](assets/redo_log_1.png)
+
+我们要注意设置正确的刷盘策略`innodb_flush_log_at_trx_commit` 。根据 MySQL 配置的刷盘策略的不同，MySQL 宕机之后可能会存在轻微的数据丢失问题。
+
+`innodb_flush_log_at_trx_commit` 的值有 3 种，也就是共有 3 种刷盘策略：
+
+- **0**：设置为 0 的时候，表示每次事务提交时不进行刷盘操作。这种方式性能最高，但是也最不安全，因为如果 MySQL 挂了或宕机了，可能会丢失最近 1 秒内的事务。
+- **1**：设置为 1 的时候，表示每次事务提交时都将进行刷盘操作。这种方式性能最低，但是也最安全，因为只要事务提交成功，redo log 记录就一定在磁盘里，不会有任何数据丢失。
+- **2**：设置为 2 的时候，表示每次事务提交时都只把 log buffer 里的 redo log 内容写入 page cache（文件系统缓存）。page cache 是专门用来缓存文件的，这里被缓存的文件就是 redo log 文件。这种方式的性能和安全性都介于前两者中间。
+
+刷盘策略 `innodb_flush_log_at_trx_commit` 的默认值为 1，设置为 1 的时候才不会丢失任何数据。为了保证事务的持久性，我们必须将其设置为 1。
+
+另外，InnoDB 存储引擎有一个后台线程，每隔 1 秒，就会把 `redo log buffer` 中的内容写到文件系统缓存（page cache），然后调用 `fsync` 刷盘。也就是说，一个没有提交事务的 redo log 记录，也可能会刷盘。
+
+![redo_log_2](assets/redo_log_2.png)
+
+因为在事务执行过程 redo log 记录是会写入`redo log buffer` 中，这些 redo log 记录会被后台线程刷盘。
+
+除了后台线程每秒 1 次的轮询操作，还有一种情况，当 `redo log buffer` 占用的空间即将达到 `innodb_log_buffer_size` 一半的时候，后台线程会主动刷盘。
+
+### binlog
+
+可以说 MySQL 数据库的**数据备份、主备、主主、主从**都离不开 binlog，需要依靠 binlog 来同步数据，保证数据一致性。
+
+### undo log
 
 ## 重要知识点
 
@@ -629,6 +659,10 @@ MVCC 是一种并发控制机制，用于在多个并发事务同时读写数据
 
 MVCC 通过创建数据的多个版本和使用快照读取来实现并发控制。读操作使用旧版本数据的快照，写操作创建新版本，并确保原始版本仍然可用。这样，不同的事务可以在一定程度上并发执行，而不会相互干扰，从而提高了数据库的并发性能和数据一致性。
 
+### InnoDB 对 MVCC 的实现
+
+`MVCC` 的实现依赖于：**隐藏字段、Read View、undo log**。在内部实现中，`InnoDB` 通过数据行的 `DB_TRX_ID` 和 `Read View` 来判断数据的可见性，如不可见，则通过数据行的 `DB_ROLL_PTR` 找到 `undo log` 中的历史版本。每个事务读到的数据版本可能是不一样的，在同一个事务中，用户只能看到该事务创建 `Read View` 之前已经提交的修改和该事务本身做的修改
+
 ### 隐藏字段
 
 在内部，`InnoDB` 存储引擎为每行数据添加了三个 [隐藏字段](https://dev.mysql.com/doc/refman/5.7/en/innodb-multi-versioning.html)：
@@ -637,9 +671,22 @@ MVCC 通过创建数据的多个版本和使用快照读取来实现并发控制
 - `DB_ROLL_PTR（7字节）` 回滚指针，指向该行的 `undo log` 。如果该行未被更新，则为空
 - `DB_ROW_ID（6字节）`：如果没有设置主键且该表没有唯一非空索引时，`InnoDB` 会使用该 id 来生成聚簇索引
 
-### [Read](#readview)
+### Read
 
+[`Read View`](https://github.com/facebook/mysql-8.0/blob/8.0/storage/innobase/include/read0types.h#L298) 主要是用来做可见性判断，里面保存了 “当前对本事务不可见的其他活跃事务”
 
+主要有以下字段：
+
+- `m_low_limit_id`：目前出现过的最大的事务 ID+1，即下一个将被分配的事务 ID。大于等于这个 ID 的数据版本均不可见
+- `m_up_limit_id`：活跃事务列表 `m_ids` 中最小的事务 ID，如果 `m_ids` 为空，则 `m_up_limit_id` 为 `m_low_limit_id`。小于这个 ID 的数据版本均可见
+- `m_ids`：`Read View` 创建时其他未提交的活跃事务 ID 列表。创建 `Read View`时，将当前未提交事务 ID 记录下来，后续即使它们修改了记录行的值，对于当前事务也是不可见的。`m_ids` 不包括当前事务自己和已提交的事务（正在内存中）
+- `m_creator_trx_id`：创建该 `Read View` 的事务 ID
+
+**事务可见性示意图**（[图源](https://leviathan.vip/2019/03/20/InnoDB的事务分析-MVCC/#MVCC-1)）：
+
+![trans_visible-ekj9bMvL](assets/trans_visible-ekj9bMvL.png)
+
+### undo-log
 
 ## 性能调优
 
