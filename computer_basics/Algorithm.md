@@ -116,6 +116,60 @@ class Solution {
 - **时间复杂度**：最佳：$O(nlogn)$， 最差：$O(nlogn)$， 平均：$O(nlogn)$
 - **空间复杂度**：$O(1)$
 
+## 面试
+
+### 实现两个线程交替打印1到100
+
+方法1：使用`wait()`和`notify()`
+
+```java
+public class AlternatePrint {
+    private static final Object lock = new Object();
+    private static int count = 1;
+    private static final int MAX = 100;
+
+    public static void main(String[] args) {
+      	// 打印偶数
+        Thread t1 = new Thread(() -> {
+            while (count <= MAX) {
+                synchronized (lock) {
+                    while (count % 2 != 1) {
+                        try {
+                            lock.wait();
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                    System.out.println("Thread 1: " + count);
+                    count++;
+                    lock.notifyAll();
+                }
+            }
+        });
+				// 打印奇数
+        Thread t2 = new Thread(() -> {
+            while (count <= MAX) {
+                synchronized (lock) {
+                    while (count % 2 != 0) {
+                        try {
+                            lock.wait();
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                    System.out.println("Thread 2: " + count);
+                    count++;
+                    lock.notifyAll();
+                }
+            }
+        });
+
+        t1.start();
+        t2.start();
+    }
+}
+```
+
 
 
 请实现有重复数字的升序数组的二分查找

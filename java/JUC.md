@@ -4,7 +4,7 @@
 
 ### 如何创建线程？
 
-一般来说，创建线程有很多种方式，例如继承`Thread`类、实现`Runnable`接口、实现`Callable`接口、使用线程池、使用`CompletableFuture`类等等。
+一般来说，创建线程有很多种方式，例如继承 Thread 类、实现 Runnable 接口、实现 Callable 接口、使用线程池、使用CompletableFuture 类等等。
 
 不过，这些方式其实并没有真正创建出线程。准确点来说，这些都属于是在 Java 代码中使用多线程的方法。
 
@@ -251,15 +251,15 @@ volatile作用有 2 个：
 
 ### ReentrantLock 是什么？
 
-`ReentrantLock` 实现了 `Lock` 接口，是一个可重入且独占式的锁，和 `synchronized` 关键字类似。不过，`ReentrantLock` 更灵活、更强大，增加了轮询、超时、中断、公平锁和非公平锁等高级功能。
+ReentrantLock 实现了 Lock 接口，是一个可重入且独占式的锁，和 `synchronized` 关键字类似。不过，ReentrantLock 更灵活、更强大，增加了轮询、超时、中断、公平锁和非公平锁等高级功能。
 
 ```java
 public class ReentrantLock implements Lock, java.io.Serializable {}
 ```
 
-`ReentrantLock` 里面有一个内部类 `Sync`，`Sync` 继承 AQS（`AbstractQueuedSynchronizer`），添加锁和释放锁的大部分操作实际上都是在 `Sync` 中实现的。`Sync` 有公平锁 `FairSync` 和非公平锁 `NonfairSync` 两个子类。
+ReentrantLock 里面有一个内部类 Sync ，Sync 继承 AQS（`AbstractQueuedSynchronizer`），添加锁和释放锁的大部分操作实际上都是在 `Sync` 中实现的。`Sync` 有公平锁 `FairSync` 和非公平锁 `NonfairSync` 两个子类。
 
-`ReentrantLock` 默认使用非公平锁，也可以通过构造器来显式的指定使用公平锁。
+ReentrantLock 默认使用非公平锁，也可以通过构造器来显式的指定使用公平锁。
 
 ```java
 // 传入一个 boolean 值，true 时为公平锁，false 时为非公平锁
@@ -449,14 +449,14 @@ sum.increment();
 
 > 科大讯飞
 
-如果当前同时运行的线程数量达到最大线程数量并且队列也已经被放满了任务时，`ThreadPoolExecutor` 定义一些策略:
+如果当前同时运行的线程数量达到最大线程数量并且队列也已经被放满了任务时，ThreadPoolExecutor 定义一些策略:
 
-- `AbortPolicy`：抛出 `RejectedExecutionException`来拒绝新任务的处理。
-- `CallerRunsPolicy`：调用执行者自己的线程运行任务，也就是直接在调用`execute`方法的线程中运行(`run`)被拒绝的任务，如果执行程序已关闭，则会丢弃该任务。因此这种策略会降低对于新任务提交速度，影响程序的整体性能。如果你的应用程序可以承受此延迟并且你要求任何一个任务请求都要被执行的话，你可以选择这个策略。
-- `DiscardPolicy`：不处理新任务，直接丢弃掉。
-- `DiscardOldestPolicy`：此策略将丢弃最早的未处理的任务请求。
+- AbortPolicy：抛出 `RejectedExecutionException`来拒绝新任务的处理。
+- CallerRunsPolicy：调用执行者自己的线程运行任务，也就是直接在调用`execute`方法的线程中运行(`run`)被拒绝的任务，如果执行程序已关闭，则会丢弃该任务。因此这种策略会降低对于新任务提交速度，影响程序的整体性能。如果你的应用程序可以承受此延迟并且你要求任何一个任务请求都要被执行的话，你可以选择这个策略。
+- DiscardPolicy：不处理新任务，直接丢弃掉。
+- DiscardOldestPolicy：此策略将丢弃最早的未处理的任务请求。
 
-举个例子：Spring 通过 `ThreadPoolTaskExecutor` 或者我们直接通过 `ThreadPoolExecutor` 的构造函数创建线程池的时候，当我们不指定 `RejectedExecutionHandler` 拒绝策略来配置线程池的时候，默认使用的是 `AbortPolicy`。在这种拒绝策略下，如果队列满了，`ThreadPoolExecutor` 将抛出 `RejectedExecutionException` 异常来拒绝新来的任务 ，这代表你将丢失对这个任务的处理。
+举个例子：Spring 通过 ThreadPoolTaskExecutor 或者我们直接通过 ThreadPoolExecutor 的构造函数创建线程池的时候，当我们不指定 `RejectedExecutionHandler` 拒绝策略来配置线程池的时候，默认使用的是 `AbortPolicy`。在这种拒绝策略下，如果队列满了，`ThreadPoolExecutor` 将抛出 `RejectedExecutionException` 异常来拒绝新来的任务 ，这代表你将丢失对这个任务的处理。
 
 如果**不想丢弃任务**的话，可以使用`CallerRunsPolicy`。`CallerRunsPolicy` 和其他的几个策略不同，它既不会抛弃任务，也不会抛出异常，而是将任务回退给调用者，使用调用者的线程来执行任务。
 

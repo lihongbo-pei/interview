@@ -337,16 +337,16 @@ private void grow(int minCapacity) {
 
 ### 说一说 PriorityQueue
 
-`PriorityQueue` 是在 JDK1.5 中被引入的, 其与 `Queue` 的区别在于元素出队顺序是与优先级相关的，即总是优先级最高的元素先出队。
+PriorityQueue 是在 JDK1.5 中被引入的, 其与 Queue 的区别在于元素出队顺序是与优先级相关的，即总是优先级最高的元素先出队。
 
 这里列举其相关的一些要点：
 
-- `PriorityQueue` 利用了**二叉堆**的数据结构来实现的，底层使用可变长的数组来存储数据
-- `PriorityQueue` 通过堆元素的上浮和下沉，实现了在 O(logn) 的时间复杂度内插入元素和删除堆顶元素。
-- `PriorityQueue` 是非线程安全的，且不支持存储 `NULL` 和 `non-comparable` 的对象。
-- `PriorityQueue` 默认是**小顶堆**，但可以接收一个 `Comparator` 作为构造参数，从而来自定义元素优先级的先后。
+- 利用了**二叉堆**的数据结构来实现的，底层使用可变长的数组来存储数据
+- 通过堆元素的上浮和下沉，实现了在 O(logn) 的时间复杂度内插入元素和删除堆顶元素。
+- 是非线程安全的，且不支持存储 `NULL` 和 `non-comparable` 的对象。
+- 默认是**小顶堆**，但可以接收一个 `Comparator` 作为构造参数，从而来自定义元素优先级的先后。
 
-`PriorityQueue` 在面试中可能更多的会出现在手撕算法的时候，典型例题包括堆排序、求第 K 大的数、带权图的遍历等，所以需要会熟练使用才行。
+PriorityQueue 在面试中可能更多的会出现在手撕算法的时候，典型例题包括堆排序、求第 K 大的数、带权图的遍历等，所以需要会熟练使用才行。
 
 **常用方法**
 
@@ -355,7 +355,7 @@ private void grow(int minCapacity) {
 - `peek()`：返回队列头部元素（优先级最高的元素），但不移除它。如果队列为空，则返回 `null`。
 - `poll()`：移除并返回队列头部元素（优先级最高的元素）。如果队列为空，则返回 `null`。
 
-### Map
+## Map
 
 ### ⭐️HashMap 和 Hashtable 的区别
 
@@ -373,6 +373,25 @@ private void grow(int minCapacity) {
 **底层数据结构：** JDK1.8 以后的 `HashMap` 在解决哈希冲突时有了较大的变化，当链表长度大于阈值（默认为 8）时，将链表转化为红黑树（将链表转换成红黑树前会判断，如果当前数组的长度小于 64，那么会选择先进行数组扩容，而不是转换为红黑树），以减少搜索时间（后文中我会结合源码对这一过程进行分析）。`Hashtable` 没有这样的机制。
 
 **哈希函数的实现**：`HashMap` 对哈希值进行了高位和低位的混合扰动处理以减少冲突，而 `Hashtable` 直接使用键的 `hashCode()` 值。
+
+### ⭐️HashMap 和 TreeMap 区别
+
+TreeMap 和 HashMap 都继承自 AbstractMap ，但是需要注意的是 TreeMap 它还实现了 NavigableMap 接口和 SortedMap 接口。
+
+实现 NavigableMap 接口让 TreeMap 有了**对集合内元素的搜索的能力**。
+
+NavigableMap 接口提供了丰富的方法来探索和操作键值对:
+
+1. **定向搜索**: `ceilingEntry()`, `floorEntry()`, `higherEntry()`和 `lowerEntry()` 等方法可以用于定位大于等于、小于等于、严格大于、严格小于给定键的最接近的键值对。
+2. **子集操作**: `subMap()`, `headMap()`和 `tailMap()` 方法可以高效地创建原集合的子集视图，而无需复制整个集合。
+3. **逆序视图**:`descendingMap()` 方法返回一个逆序的 `NavigableMap` 视图，使得可以反向迭代整个 `TreeMap`。
+4. **边界操作**: `firstEntry()`, `lastEntry()`, `pollFirstEntry()`和 `pollLastEntry()` 等方法可以方便地访问和移除元素。
+
+这些方法都是基于红黑树数据结构的属性实现的，红黑树保持平衡状态，从而保证了搜索操作的时间复杂度为 O(log n)，这让 TreeMap成为了处理有序集合搜索问题的强大工具。
+
+实现 SortedMap 接口让 TreeMap 有了**对集合中的元素根据键排序的能力**。默认是按 key 的升序排序，不过我们也可以指定排序的**比较器**。
+
+综上，相比于`HashMap`来说， `TreeMap` 主要多了对集合中的元素根据键排序的能力以及对集合内元素的搜索的能力。
 
 ### HashMap 的底层实现
 
@@ -587,11 +606,15 @@ Integer value1 = map.getOrDefault("apple", 0); // 键存在，返回对应的值
 
 ###  ConcurrentHashMap怎么实现的？
 
- Segment 是一种可重入锁（ReentrantLock）
+#### JDK 1.7
 
-JDK 1.7 ConcurrentHashMap **分段锁**技术将数据分成一段一段的存储，
+在 JDK 1.7 中它使用的是数组加链表的形式实现的，而数组又分为：大数组 Segment 和小数组 HashEntry。 Segment 是一种**可重入锁**（ReentrantLock），在 ConcurrentHashMap 里扮演锁的角色；HashEntry 则用于存储键值对数据。一个 ConcurrentHashMap 里包含一个 Segment 数组，一个 Segment 里包含一个 HashEntry 数组，每个 HashEntry 是一个链表结构的元素。
 
-> JDK 1.8 ConcurrentHashMap
+![conHashMap-7](assets/conHashMap-7.png)
+
+JDK 1.7 ConcurrentHashMap **分段锁**技术将数据分成一段一段的存储，然后给每一段数据配一把锁，当一个线程占用锁访问其中一个段数据的时候，其他段的数据也能被其他线程访问，能够实现真正的并发访问。
+
+#### JDK 1.8 
 
 在 JDK 1.7 中，ConcurrentHashMap 虽然是线程安全的，但因为它的底层实现是数组 + 链表的形式，所以在数据比较多的情况下访问是很慢的，因为要遍历整个链表，而 JDK 1.8 则使用了数组 + 链表/红黑树的方式优化了 ConcurrentHashMap 的实现，具体实现结构如下：
 

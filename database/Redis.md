@@ -39,9 +39,9 @@ Redis 内部做了非常多的性能优化，比较重要的有下面 4 点：
 
 1. 纯内存操作 (Memory-Based Storage) ：这是最主要的原因。Redis 数据读写操作都发生在内存中，访问速度是纳秒级别，而传统数据库频繁读写磁盘的速度是毫秒级别，两者相差数个数量级。
 
-2. 高效的 I/O 模型 (I/O Multiplexing & Single-Threaded Event Loop) ：Redis 使用**单线程**事件循环配合 **I/O 多路复用**技术，让单个线程可以同时处理多个网络连接上的 I/O 事件（如读写），避免了多线程模型中的上下文切换和锁竞争问题。虽然是单线程，但结合内存操作的高效性和 I/O 多路复用，使得 Redis 能轻松处理大量并发请求（Redis 线程模型会在后文中详细介绍到）。
+2. 高效的 I/O 模型 (I/O Multiplexing & Single-Threaded Event Loop) ：Redis 使用**单线程**事件循环配合 **I/O 多路复用**技术，让单个线程可以同时处理多个网络连接上的 I/O 事件（如读写），避免了多线程模型中的上下文切换和锁竞争问题。虽然是单线程，但结合内存操作的高效性和 I/O 多路复用，使得 Redis 能轻松处理大量并发请求。
 
-3. 优化的内部数据结构 (Optimized Data Structures) ：Redis 提供多种数据类型（如 String, List, Hash, Set, Sorted Set 等），其内部实现采用高度优化的编码方式（如 ziplist, quicklist, skiplist, hashtable 等）。Redis 会根据数据大小和类型动态选择最合适的内部编码，以在性能和空间效率之间取得最佳平衡。
+3. 优化的内部数据结构 (Optimized Data Structures) ：Redis 提供多种数据类型（如 String, List, Hash, Set, Sorted Set 等），其内部实现采用**高度优化的编码方式**（如 ziplist, quicklist, skiplist, hashtable 等）。Redis 会根据数据大小和类型动态选择最合适的内部编码，以在性能和空间效率之间取得最佳平衡。
 
 4. 简洁高效的通信协议 (Simple Protocol - RESP) ：Redis 使用的是自己设计的 **RESP (REdis Serialization Protocol) 协议**。这个协议实现简单、解析性能好，并且是二进制安全的。客户端和服务端之间通信的序列化/反序列化开销很小，有助于提升整体的交互速度。
 
