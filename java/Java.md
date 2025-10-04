@@ -2,14 +2,16 @@
 
 ## 基础
 
-### 关键字
+###  Java 中 final 作用是什么？
 
-####  Java 中 final 作用是什么？
+final 关键字主要有以下三个方面的作用：
 
-final 关键字主要有以下三个方面的作用：用于修饰类、方法和变量。
+- 修饰类：当 final 修饰一个类时，表示这个类不能被继承，是类继承体系中的最终形态。
+  - 例如，**String 类**就是用 final 修饰的，这保证了 String 类的不可变性和安全性，防止其他类通过继承来改变 String 类的行为和特性。
 
-- 修饰类：当 final 修饰一个类时，表示这个类不能被继承，是类继承体系中的最终形态。例如，**String 类**就是用 final 修饰的，这保证了 String 类的不可变性和安全性，防止其他类通过继承来改变 String 类的行为和特性。
-- 修饰方法：用 final 修饰的方法不能在子类中被重写。例如，**java.lang.Object 类中的 getClass 方法**就是 final 的，因为这个方法的行为是由 Java 虚拟机底层实现来保证的，不应该被子类修改。
+- 修饰方法：用 final 修饰的方法不能在子类中被重写。
+  - 例如，**java.lang.Object 类中的 getClass 方法**就是 final 的，因为这个方法的行为是由 Java 虚拟机底层实现来保证的，不应该被子类修改。
+
 - 修饰变量：
   - 当 final 修饰基本数据类型的变量时，该变量一旦被赋值就不能再改变。例如，final int num = 10;，这里的 num 就是一个常量，不能再对其进行重新赋值操作，否则会导致编译错误。
   - 对于引用数据类型，final 修饰意味着这个引用变量不能再指向其他对象，**但对象本身的内容是可以改变的**。例如，final StringBuilder sb = new StringBuilder("Hello");，不能让 sb 再指向其他 StringBuilder 对象，但可以通过 sb.append(" World"); 来修改字符串的内容。
@@ -52,12 +54,16 @@ final 关键字主要有以下三个方面的作用：用于修饰类、方法�
 
 ### 深拷贝和浅拷贝区别了解吗？什么是引用拷贝？
 
-关于深拷贝和浅拷贝区别，我这里先给结论：
+关于深拷贝和浅拷贝区别 ：
 
 - **浅拷贝**：浅拷贝会在堆上创建一个新的对象（区别于引用拷贝的一点），不过，如果原对象内部的属性是引用类型的话，浅拷贝会直接复制内部对象的引用地址，也就是说拷贝对象和原对象共用同一个内部对象。
 - **深拷贝**：深拷贝会完全复制整个对象，包括这个对象所包含的内部对象。
 
-上面的结论没有完全理解的话也没关系，我们来看一个具体的案例！
+#### 浅拷贝
+
+浅拷贝的示例代码如下，我们这里实现了 `Cloneable` 接口，并重写了 `clone()` 方法。
+
+`clone()` 方法的实现很简单，直接调用的是父类 `Object` 的 `clone()` 方法。
 
 #### 深拷贝
 
@@ -68,7 +74,7 @@ final 关键字主要有以下三个方面的作用：用于修饰类、方法�
 public Person clone() {
     try {
         Person person = (Person) super.clone();
-        person.setAddress(person.getAddress().clone());
+        person.setAddress(person.getAddress().clone());  // 深拷贝
         return person;
     } catch (CloneNotSupportedException e) {
         throw new AssertionError();
@@ -123,14 +129,14 @@ Field nameField = clazz.getDeclaredField("name");
 
 ### == 和 equals() 的区别
 
-**`==`** 对于基本类型和引用类型的作用效果是不同的：
+== 对于基本类型和引用类型的作用效果是不同的：
 
 - 对于基本数据类型来说，`==` 比较的是值。
 - 对于引用数据类型来说，`==` 比较的是对象的内存地址。
 
-> 因为 Java 只有值传递，所以，对于 == 来说，不管是比较基本数据类型，还是引用数据类型的变量，其本质比较的都是值，只是引用类型变量存的值是对象的地址。
+因为 Java 只有**值传递**，所以，对于 == 来说，不管是比较基本数据类型，还是引用数据类型的变量，其本质比较的都是值，只是引用类型变量存的值是对象的地址。
 
-**`equals()`** 不能用于判断基本数据类型的变量，只能用来判断两个对象是否相等。`equals()`方法存在于`Object`类中，而`Object`类是所有类的直接或间接父类，因此所有的类都有`equals()`方法。
+`equals()` 不能用于判断基本数据类型的变量，只能用来判断两个对象是否相等。`equals()`方法存在于 Object 类中，而`Object`类是所有类的直接或间接父类，因此所有的类都有`equals()`方法。
 
 `Object` 类 `equals()` 方法：
 
@@ -142,7 +148,7 @@ public boolean equals(Object obj) {
 
 `equals()` 方法存在两种使用情况：
 
-- **类没有重写 `equals()`方法**：通过`equals()`比较该类的两个对象时，等价于通过“==”比较这两个对象，使用的默认是 `Object`类`equals()`方法。
+- **类没有重写 `equals()`方法**：通过`equals()`比较该类的两个对象时，等价于通过“==”比较这两个对象，使用的默认是 Object 类`equals()`方法。
 - **类重写了 `equals()`方法**：一般我们都重写 `equals()`方法来比较两个对象中的属性是否相等；若它们的属性相等，则返回 true(即，认为这两个对象相等)。
 
 举个例子（这里只是为了举例。实际上，你按照下面这种写法的话，像 IDEA 这种比较智能的 IDE 都会提示你将 `==` 换成 `equals()` ）：
@@ -158,11 +164,11 @@ System.out.println(a.equals(b));// true
 System.out.println(42 == 42.0);// true
 ```
 
-`String` 中的 `equals` 方法是被重写过的，因为 `Object` 的 `equals` 方法是比较的对象的内存地址，而 `String` 的 `equals` 方法比较的是对象的值。
+String 中的 `equals` 方法是被重写过的，因为 `Object` 的 `equals` 方法是比较的对象的内存地址，而 String 的 `equals` 方法比较的是对象的值。
 
-当创建 `String` 类型的对象时，虚拟机会在常量池中查找有没有已经存在的值和要创建的值相同的对象，如果有就把它赋给当前引用。如果没有就在常量池中重新创建一个 `String` 对象。
+当创建 `String` 类型的对象时，虚拟机会在常量池中查找有没有已经存在的值和要创建的值相同的对象，如果有就把它赋给当前引用。如果没有就在常量池中重新创建一个 String 对象。
 
-`String`类`equals()`方法：
+String 类`equals()`方法：
 
 ```java
 public boolean equals(Object anObject) {
@@ -187,6 +193,32 @@ public boolean equals(Object anObject) {
     return false;
 }
 ```
+
+### 为什么要有 hashCode？
+
+其实， `hashCode()` 和 `equals()`都是用于比较两个对象是否相等。
+
+**那为什么 JDK 还要同时提供这两个方法呢？**
+
+这是因为在一些容器（比如 HashMap、HashSet）中，有了 `hashCode()` 之后，判断元素是否在对应容器中的效率会更高（参考添加元素进`HashSet`的过程）！
+
+我们在前面也提到了添加元素进 HashSet 的过程，如果 HashSet 在对比的时候，同样的 `hashCode` 有多个对象，它会继续使用 `equals()` 来判断是否真的相同。也就是说 `hashCode` 帮助我们大大缩小了查找成本。
+
+**那为什么不只提供 `hashCode()` 方法呢？**
+
+这是因为两个对象的`hashCode` 值相等并不代表两个对象就相等。
+
+**那为什么两个对象有相同的 `hashCode` 值，它们也不一定是相等的？**
+
+因为 `hashCode()` 所使用的哈希算法也许刚好会让多个对象传回相同的哈希值。越糟糕的哈希算法越容易碰撞，但这也与数据值域分布的特性有关（所谓哈希碰撞也就是指的是不同的对象得到相同的 `hashCode` )。
+
+总结下来就是：
+
+- 如果两个对象的`hashCode` 值相等，那这两个对象不一定相等（哈希碰撞）。
+- 如果两个对象的`hashCode` 值相等并且`equals()`方法也返回 `true`，我们才认为这两个对象相等。
+- 如果两个对象的`hashCode` 值不相等，我们就可以直接认为这两个对象不相等。
+
+相信大家看了我前面对 `hashCode()` 和 `equals()` 的介绍之后，下面这个问题已经难不倒你们了。
 
 ## 集合
 
@@ -252,21 +284,27 @@ Arrays.sort(numbers, new Comparator<Integer>() {
 ### Arraylist 与 LinkedList 区别?
 
 - **是否保证线程安全：**都是不同步的，也就是不保证线程安全；(Vector是线程安全的)
-- **底层数据结构：** `ArrayList` 底层使用的是 **`Object` 数组**；`LinkedList` 底层使用的是 **双向链表** 数据结构（JDK1.6 之前为循环链表，JDK1.7 取消了循环。注意双向链表和双向循环链表的区别，下面有介绍到！）
+- **底层数据结构：** 
+  - ArrayList 底层使用的是 **`Object` 数组**；
+
+  - LinkedList 底层使用的是 **双向链表** 数据结构（JDK1.6 之前为循环链表，JDK1.7 取消了循环。注意双向链表和双向循环链表的区别，下面有介绍到！）
 
 - **插入和删除是否受元素位置的影响：**
-  - `ArrayList` 采用数组存储，所以插入和删除元素的时间复杂度受元素位置的影响。 比如：执行`add(E e)`方法的时候， `ArrayList` 会默认在将指定的元素追加到此列表的末尾，这种情况时间复杂度就是 O(1)。但是如果要在指定位置 i 插入和删除元素的话（`add(int index, E element)`），时间复杂度就为 O(n)。因为在进行上述操作的时候集合中第 i 和第 i 个元素之后的(n-i)个元素都要执行向后位/向前移一位的操作。
-  
-  - `LinkedList` 采用链表存储，所以在头尾插入或者删除元素不受元素位置的影响（`add(E e)`、`addFirst(E e)`、`addLast(E e)`、`removeFirst()`、 `removeLast()`），时间复杂度为 O(1)，如果是要在指定位置 `i` 插入和删除元素的话（`add(int index, E element)`，`remove(Object o)`,`remove(int index)`）， 时间复杂度为 O(n) ，因为需要先移动到指定位置再插入和删除。
-  
-- **是否支持快速随机访问：** `LinkedList` 不支持高效的随机元素访问，而 `ArrayList`（实现了 `RandomAccess` 接口） 支持。快速随机访问就是通过元素的序号快速获取元素对象(对应于`get(int index)`方法)。
-- **内存空间占用：** `ArrayList` 的空间浪费主要体现在在 list 列表的结尾会预留一定的容量空间，而 LinkedList 的空间花费则体现在它的每一个元素都需要消耗比 ArrayList 更多的空间（因为要存放直接后继和直接前驱以及数据）。
+  - ArrayList 采用数组存储，所以插入和删除元素的时间复杂度受元素位置的影响。 比如：执行`add(E e)`方法的时候， ArrayList 会默认在将指定的元素追加到此列表的末尾，这种情况时间复杂度就是 O(1)。但是如果要在指定位置 i 插入和删除元素的话（`add(int index, E element)`），时间复杂度就为 O(n)。因为在进行上述操作的时候集合中第 i 和第 i 个元素之后的(n-i)个元素都要执行向后位/向前移一位的操作。
+
+  - LinkedList 采用链表存储，所以在头尾插入或者删除元素不受元素位置的影响（`add(E e)`、`addFirst(E e)`、`addLast(E e)`、`removeFirst()`、 `removeLast()`），时间复杂度为 O(1)，如果是要在指定位置 `i` 插入和删除元素的话（`add(int index, E element)`，`remove(Object o)`,`remove(int index)`）， 时间复杂度为 O(n) ，因为需要先移动到指定位置再插入和删除。
+
+- **是否支持快速随机访问：** LinkedList 不支持高效的随机元素访问，而 ArrayList（实现了 `RandomAccess` 接口） 支持。快速随机访问就是通过元素的序号快速获取元素对象(对应于`get(int index)`方法)。
+- **内存空间占用：** 
+  - ArrayList 的空间浪费主要体现在在 list 列表的结尾会预留一定的容量空间，
+  - 而 LinkedList 的空间花费则体现在它的每一个元素都需要消耗比 ArrayList 更多的空间（因为要存放直接后继和直接前驱以及数据）。
+
 
 ### ⭐️说一说 ArrayList 的扩容机制吧
 
 以无参数构造方法创建 ArrayList 时，实际上初始化赋值的是一个空数组。当真正对数组进行添加元素操作时，才真正分配容量。即向数组中添加第一个元素时，数组容量扩为 10。 
 
-- 当我们要 `add` 进第 1 个元素到 `ArrayList` 时，`elementData.length` 为 0 （因为还是一个空的 list），因为执行了 `ensureCapacityInternal()` 方法 ，所以 `minCapacity` 此时为 10。此时，`minCapacity - elementData.length > 0`成立，所以会进入 `grow(minCapacity)` 方法。
+- 当我们要 `add` 进第 1 个元素到 ArrayList 时，`elementData.length` 为 0 （因为还是一个空的 list），因为执行了 `ensureCapacityInternal()` 方法 ，所以 `minCapacity` 此时为 10。此时，`minCapacity - elementData.length > 0`成立，所以会进入 `grow(minCapacity)` 方法。
 - 当 `add` 第 2 个元素时，`minCapacity` 为 2，此时 `elementData.length`(容量)在添加第一个元素后扩容成 `10` 了。此时，`minCapacity - elementData.length > 0` 不成立，所以不会进入 （执行）`grow(minCapacity)` 方法。
 - 添加第 3、4···到第 10 个元素时，依然不会执行 grow 方法，数组容量都为 10。
 
@@ -302,7 +340,7 @@ private void grow(int minCapacity) {
 }
 ```
 
-`int newCapacity = oldCapacity + (oldCapacity >> 1)`,所以 ArrayList 每次扩容之后容量都会变为原来的 1.5 倍左右（oldCapacity 为偶数就是 1.5 倍，否则是 1.5 倍左右）！ 奇偶不同，比如：10+10/2 = 15, 33+33/2=49。如果是奇数的话会丢掉小数.
+`int newCapacity = oldCapacity + (oldCapacity >> 1)`，所以 ArrayList 每次扩容之后容量都会变为原来的 1.5 倍左右（oldCapacity 为偶数就是 1.5 倍，否则是 1.5 倍左右）！ 奇偶不同，比如：10+10/2 = 15, 33+33/2=49。如果是奇数的话会丢掉小数.
 
 > ">>"（移位运算符）：>>1 右移一位相当于除 2，右移 n 位相当于除以 2 的 n 次方。这里 oldCapacity 明显右移了 1 位所以相当于 oldCapacity /2。对于大数据的 2 进制运算,位移运算符比那些普通运算符的运算要快很多,因为程序仅仅移动一下而已,不去计算,这样提高了效率,节省了资源
 
@@ -329,11 +367,28 @@ private void grow(int minCapacity) {
 
 ### Queue 与 Deque 的区别
 
-事实上，`Deque` 还提供有 `push()` 和 `pop()` 等其他方法，可用于**模拟栈**。
+> 算法题经常拿 Deque 当栈用
+
+Queue 是单端队列，只能从一端插入元素，另一端删除元素，实现上一般遵循 **先进先出（FIFO）** 规则。
+
+Queue 扩展了 `Collection` 的接口，根据 **因为容量问题而导致操作失败后处理方式的不同** 可以分为两类方法: 一种在操作失败后会抛出异常，另一种则会返回特殊值。
+
+Deque 是双端队列，在队列的两端均可以插入或删除元素。
+
+Deque 扩展了 `Queue` 的接口, 增加了在队首和队尾进行插入和删除的方法，同样根据失败后处理方式的不同分为两类：
+
+事实上，Deque 还提供有 `push()` 和 `pop()` 等其他方法，可用于**模拟栈**。
 
 ### ArrayDeque 与 LinkedList 的区别
 
 `ArrayDeque` 和 `LinkedList` 都实现了 **Deque** 接口，两者都具有队列的功能，但两者有什么区别呢？
+
+- `ArrayDeque` 是基于可变长的数组和双指针来实现，而 `LinkedList` 则通过链表来实现。
+- `ArrayDeque` 不支持存储 `NULL` 数据，但 `LinkedList` 支持。
+- `ArrayDeque` 是在 JDK1.6 才被引入的，而`LinkedList` 早在 JDK1.2 时就已经存在。
+- `ArrayDeque` 插入时可能存在扩容过程, 不过均摊后的插入操作依然为 O(1)。虽然 `LinkedList` 不需要扩容，但是每次插入数据时均需要申请新的堆空间，均摊性能相比更慢。
+
+从性能的角度上，选用 `ArrayDeque` 来实现队列要比 `LinkedList` 更好。此外，`ArrayDeque` 也可以用于实现栈。
 
 ### 说一说 PriorityQueue
 
@@ -359,20 +414,24 @@ PriorityQueue 在面试中可能更多的会出现在手撕算法的时候，典
 
 ### ⭐️HashMap 和 Hashtable 的区别
 
-**线程是否安全：** `HashMap` 是非线程安全的，`Hashtable` 是线程安全的,因为 `Hashtable` 内部的方法基本都经过`synchronized` 修饰。（如果你要保证线程安全的话就使用 `ConcurrentHashMap` 吧！）；
+- **线程是否安全：** HashMap 是非线程安全的，Hashtable 是线程安全的，因为 Hashtable 内部的方法基本都经过`synchronized` 修饰。（如果你要保证线程安全的话就使用 `ConcurrentHashMap` 吧！）；
 
-**效率：** 因为线程安全的问题，`HashMap` 要比 `Hashtable` 效率高一点。另外，`Hashtable` 基本被淘汰，不要在代码中使用它；
+- **效率：** 因为线程安全的问题，HashMap 要比 Hashtable 效率高一点。另外，Hashtable 基本被淘汰，不要在代码中使用它；
 
-**对 Null key 和 Null value 的支持：** `HashMap` 可以存储 null 的 key 和 value，但 null 作为键只能有一个，null 作为值可以有多个；Hashtable 不允许有 null 键和 null 值，否则会抛出 `NullPointerException`。
+- **对 Null key 和 Null value 的支持：** 
+  - HashMap 可以存储 null 的 key 和 value，但 null 作为键只能有一个，null 作为值可以有多个；
+  - Hashtable 不允许有 null 键和 null 值，否则会抛出 `NullPointerException`。
 
-**初始容量大小和每次扩充容量大小的不同：**
+- **初始容量大小和每次扩充容量大小的不同：**
 
-- ① 创建时如果不指定容量初始值，`Hashtable` 默认的初始大小为 11，之后每次扩充，容量变为原来的 2n+1。`HashMap` 默认的初始化大小为 16。之后每次扩充，容量变为原来的 2 倍。
-- ② 创建时如果给定了容量初始值，那么 `Hashtable` 会直接使用你给定的大小，而 `HashMap` 会将其扩充为 2 的幂次方大小（`HashMap` 中的`tableSizeFor()`方法保证，下面给出了源代码）。也就是说 `HashMap` 总是使用 2 的幂作为哈希表的大小,后面会介绍到为什么是 2 的幂次方。
+  - ① 创建时如果不指定容量初始值，Hashtable 默认的初始大小为 11，之后每次扩充，容量变为原来的 2n+1。HashMap 默认的初始化大小为 16。之后每次扩充，容量变为原来的 2 倍。
 
-**底层数据结构：** JDK1.8 以后的 `HashMap` 在解决哈希冲突时有了较大的变化，当链表长度大于阈值（默认为 8）时，将链表转化为红黑树（将链表转换成红黑树前会判断，如果当前数组的长度小于 64，那么会选择先进行数组扩容，而不是转换为红黑树），以减少搜索时间（后文中我会结合源码对这一过程进行分析）。`Hashtable` 没有这样的机制。
+  - ② 创建时如果给定了容量初始值，那么 Hashtable 会直接使用你给定的大小，而 HashMap 会将其扩充为 2 的幂次方大小（HashMap 中的`tableSizeFor()`方法保证，下面给出了源代码）。也就是说 HashMap 总是使用 2 的幂作为哈希表的大小,后面会介绍到为什么是 2 的幂次方。
 
-**哈希函数的实现**：`HashMap` 对哈希值进行了高位和低位的混合扰动处理以减少冲突，而 `Hashtable` 直接使用键的 `hashCode()` 值。
+
+- **底层数据结构：** JDK1.8 以后的 `HashMap` 在解决哈希冲突时有了较大的变化，当链表长度大于阈值（默认为 8）时，将链表转化为红黑树（将链表转换成红黑树前会判断，如果当前数组的长度小于 64，那么会选择先进行数组扩容，而不是转换为红黑树），以减少搜索时间（后文中我会结合源码对这一过程进行分析）。Hashtable 没有这样的机制。
+
+- **哈希函数的实现**：HashMap 对哈希值进行了高位和低位的混合扰动处理以减少冲突，而 Hashtable 直接使用键的 `hashCode()` 值。
 
 ### ⭐️HashMap 和 TreeMap 区别
 

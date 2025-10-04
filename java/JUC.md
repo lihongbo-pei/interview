@@ -4,11 +4,7 @@
 
 ### 如何创建线程？
 
-一般来说，创建线程有很多种方式，例如继承 Thread 类、实现 Runnable 接口、实现 Callable 接口、使用线程池、使用CompletableFuture 类等等。
-
-不过，这些方式其实并没有真正创建出线程。准确点来说，这些都属于是在 Java 代码中使用多线程的方法。
-
-严格来说，Java 就只有一种方式可以创建线程，那就是通过`new Thread().start()`创建。不管是哪种方式，最终还是依赖于`new Thread().start()`。
+一般来说，创建线程有很多种方式，例如继承 Thread 类、实现 Runnable 接口、实现 Callable 接口、使用线程池、使用CompletableFuture 类等等。不过，这些方式其实并没有真正创建出线程。准确点来说，这些都属于是在 Java 代码中使用多线程的方法。严格来说，Java 就只有一种方式可以创建线程，那就是通过`new Thread().start()`创建。不管是哪种方式，最终还是依赖于`new Thread().start()`。
 
 > 2.实现Runnable接口
 
@@ -187,28 +183,28 @@ CAS 和 AQS 两者的联系：
 
 ### Threadlocal作用，原理，具体里面存的key value是啥，会有什么问题，如何解决? 
 
-`ThreadLocal` 是Java中用于解决线程安全问题的一种机制，它允许创建线程**局部变量**，即每个线程都有自己独立的变量副本，从而避免了线程间的资源共享和同步问题。
+ThreadLocal 是Java中用于解决线程安全问题的一种机制，它允许创建线程**局部变量**，即每个线程都有自己独立的变量副本，从而避免了线程间的资源共享和同步问题。
 
 ![threadLocal](assets/threadLocal.jpg)
 
 从内存结构图，我们可以看到： 
 
 - Thread类中，有个ThreadLocal.ThreadLocalMap 的成员变量。 
-- ThreadLocalMap内部维护了Entry数组，每个Entry代表一个完整的对象，key是 `ThreadLocal` 本 身，value是ThreadLocal的泛型对象值。
+- ThreadLocalMap内部维护了Entry数组，每个Entry代表一个完整的对象，key是 ThreadLocal 本 身，value是ThreadLocal的泛型对象值。
 
 > ThreadLocal 的作用 
 
-- 线程隔离： `ThreadLocal` 为每个线程提供了独立的变量副本，这意味着线程之间不会相互影响，可以安全地在多线程环境中使用这些变量而不必担心数据竞争或同步问题。
+- 线程隔离： ThreadLocal 为每个线程提供了独立的变量副本，这意味着线程之间不会相互影响，可以安全地在多线程环境中使用这些变量而不必担心数据竞争或同步问题。
 
-- 性能优势：由于 `ThreadLocal` 避免了线程间的同步开销，所以在大量线程并发执行时，相比传统的锁机制，它可以提供更好的性能。
+- 性能优势：由于 ThreadLocal 避免了线程间的同步开销，所以在大量线程并发执行时，相比传统的锁机制，它可以提供更好的性能。
 
 > ThreadLocal的原理 
 
-`ThreadLocal` 的实现依赖于 Thread 类中的一个 `ThreadLocalMap` 字段，这是一个存储 `ThreadLocal` 变量本身和对应值的映射。每个线程都有自己的 `ThreadLocalMap` 实例，用于存储该线程所持有的所有 `ThreadLocal` 变量的值。 
+ThreadLocal 的实现依赖于 Thread 类中的一个 ThreadLocalMap 字段，这是一个存储 ThreadLocal 变量本身和对应值的映射。每个线程都有自己的 ThreadLocalMap 实例，用于存储该线程所持有的所有 ThreadLocal 变量的值。 
 
-当你创建一个 `ThreadLocal` 变量时，它实际上就是一个 `ThreadLocal` 对象的实例。每个 `ThreadLocal` 对象都可以存储任意类型的值，这个值对每个线程来说是独立的。 
+当你创建一个 ThreadLocal 变量时，它实际上就是一个 ThreadLocal 对象的实例。每个 ThreadLocal 对象都可以存储任意类型的值，这个值对每个线程来说是独立的。 
 
-- 当调用 `ThreadLocal` 的 get() 方法时，` ThreadLocal` 会检查当前线程的 ThreadLocalMap 中是 否有与之关联的值。
+- 当调用 `ThreadLocal` 的 get() 方法时，` ThreadLocal` 会检查当前线程的 ThreadLocalMap 中是否有与之关联的值。
 -  如果有，返回该值； 
 - 如果没有，会调用 `initialValue()` 方法（如果重写了的话）来初始化该值，然后将其放入 `ThreadLocalMap` 中并返回。 
 - 当调用 set() 方法时， ThreadLocal 会将给定的值与当前线程关联起来，即在当前线程的 ThreadLocalMap 中存储一个键值对，键是 ThreadLocal 对象自身，值是传入的值。 
@@ -216,11 +212,11 @@ CAS 和 AQS 两者的联系：
 
 > 可能存在的问题 
 
-当一个线程结束时，其 `ThreadLocalMap` 也会随之销毁，但是 `ThreadLocal` 对象本身不会立即被垃圾回收，直到没有其他引用指向它为止。 
+当一个线程结束时，其 ThreadLocalMap 也会随之销毁，但是 ThreadLocal 对象本身不会立即被垃圾回收，直到没有其他引用指向它为止。 
 
-因此，在使用 `ThreadLocal` 时需要注意，如果不显式调用 remove() 方法，或者线程结束时未正确 清理 `ThreadLocal` 变量，可能会导致**内存泄漏**，因为 `ThreadLocalMap` 会持续持有 `ThreadLocal` 变量的引用，即使这些变量不再被其他地方引用。
+因此，在使用 ThreadLocal 时需要注意，如果不显式调用 remove() 方法，或者线程结束时未正确清理 ThreadLocal 变量，可能会导致**内存泄漏**，因为 ThreadLocalMap 会持续持有 ThreadLocal 变量的引用，即使这些变量不再被其他地方引用。
 
- 因此，实际应用中需要在使用完 `ThreadLocal` 变量后调用 remove() 方法释放资源。
+ 因此，实际应用中需要在使用完 ThreadLocal 变量后调用 remove() 方法释放资源。
 
 ### volatile关键字有什么作用？
 
@@ -257,7 +253,7 @@ ReentrantLock 实现了 Lock 接口，是一个可重入且独占式的锁，和
 public class ReentrantLock implements Lock, java.io.Serializable {}
 ```
 
-ReentrantLock 里面有一个内部类 Sync ，Sync 继承 AQS（`AbstractQueuedSynchronizer`），添加锁和释放锁的大部分操作实际上都是在 `Sync` 中实现的。`Sync` 有公平锁 `FairSync` 和非公平锁 `NonfairSync` 两个子类。
+ReentrantLock 里面有一个内部类 Sync ，Sync 继承 **AQS（AbstractQueuedSynchronizer）**，添加锁和释放锁的大部分操作实际上都是在 Sync 中实现的。Sync 有公平锁 FairSync 和非公平锁 `NonfairSync` 两个子类。
 
 ReentrantLock 默认使用非公平锁，也可以通过构造器来显式的指定使用公平锁。
 
@@ -488,17 +484,19 @@ public static class CallerRunsPolicy implements RejectedExecutionHandler {
 
 ### AQS 是什么？
 
-AQS （`AbstractQueuedSynchronizer` ，抽象队列同步器）是从 JDK1.5 开始提供的 Java 并发核心组件。
+AQS （AbstractQueuedSynchronizer ，抽象队列同步器）是从 JDK1.5 开始提供的 Java 并发核心组件。
 
-AQS 解决了开发者在实现同步器时的复杂性问题。它提供了一个通用框架，用于实现各种同步器，例如 **可重入锁**（`ReentrantLock`）、**信号量**（`Semaphore`）和 **倒计时器**（`CountDownLatch`）。通过封装底层的线程同步机制，AQS 将复杂的线程管理逻辑隐藏起来，使开发者只需专注于具体的同步逻辑。
+AQS 解决了开发者在实现同步器时的复杂性问题。它提供了一个通用框架，用于实现各种同步器，例如 **可重入锁**（ReentrantLock）、**信号量**（`Semaphore`）和 **倒计时器**（`CountDownLatch`）。通过封装底层的线程同步机制，AQS 将复杂的线程管理逻辑隐藏起来，使开发者只需专注于具体的同步逻辑。
 
-简单来说，AQS 是一个抽象类，为同步器提供了通用的 **执行框架**。它定义了 **资源获取和释放的通用流程**，而具体的资源获取逻辑则由具体同步器通过重写模板方法来实现。 因此，可以将 AQS 看作是同步器的 **基础“底座”**，而同步器则是基于 AQS 实现的 **具体“应用”**。
+简单来说，AQS 是一个抽象类，为同步器提供了通用的执行框架。它定义了 **资源获取和释放的通用流程**，而具体的资源获取逻辑则由具体同步器通过重写模板方法来实现。 因此，可以将 AQS 看作是同步器的 **基础“底座”**，而同步器则是基于 AQS 实现的 **具体“应用”**。
 
 ### ⭐️AQS 的原理是什么？
 
 AQS 核心思想是，如果被请求的共享资源空闲，则将当前请求资源的线程设置为有效的工作线程，并且将共享资源设置为锁定状态。如果被请求的共享资源被占用，那么就需要一套线程阻塞等待以及被唤醒时锁分配的机制，这个机制 AQS 是基于 **CLH 锁** （Craig, Landin, and Hagersten locks） 进一步优化实现的。
 
-**CLH 锁** 对自旋锁进行了改进，是基于单链表的自旋锁。在多线程场景下，会将请求获取锁的线程组织成一个单向队列，每个等待的线程会通过自旋访问前一个线程节点的状态，前一个节点释放锁之后，当前节点才可以获取锁。**CLH 锁** 的队列结构如下图所示
+**CLH 锁** 对自旋锁进行了改进，是基于单链表的自旋锁。在多线程场景下，会将请求获取锁的线程组织成一个单向队列，每个等待的线程会通过自旋访问前一个线程节点的状态，前一个节点释放锁之后，当前节点才可以获取锁。**CLH 锁** 的队列结构如下图所示。
+
+![clh-lock-queue-structure](assets/clh-lock-queue-structure-9206983.png)
 
 ### CountDownLatch 有什么用？
 

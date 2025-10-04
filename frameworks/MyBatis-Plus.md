@@ -53,6 +53,25 @@ select * from users order by ${orderCols}
 
 > `#{}` 是安全的，它可以有效防止 SQL 注入。
 
+### MyBatis Plus ，怎么做批量的插入？
+
+1. 使用 `saveBatch` 方法
+
+   ```java
+   List<User> userList = new ArrayList<>();
+   userList.add(new User("Alice", 25));
+   userList.add(new User("Bob", 30));
+   userService.saveBatch(userList);
+   ```
+
+   
+
+2. 使用 `insertBatchSomeColumn` 方法
+
+   `insertBatchSomeColumn`方法可以实现一次性批量插入，并且可以选择性地插入部分字段，优化数据传输。
+
+3. 自定义Mapper实现批量插入
+
 ## 项目
 
 ```xml

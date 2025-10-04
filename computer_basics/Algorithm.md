@@ -116,6 +116,66 @@ class Solution {
 - **时间复杂度**：最佳：$O(nlogn)$， 最差：$O(nlogn)$， 平均：$O(nlogn)$
 - **空间复杂度**：$O(1)$
 
+### 基数排序
+
+基数排序也是非比较的排序算法，对元素中的每一位数字进行排序，从最低位开始排序，复杂度为 $O(n×k)$，$n$ 为数组长度，$k$ 为数组中元素的最大的位数；
+
+基数排序是按照低位先排序，然后收集；再按照高位排序，然后再收集；依次类推，直到最高位。有时候有些属性是有优先级顺序的，先按低优先级排序，再按高优先级排序。最后的次序就是高优先级高的在前，高优先级相同的低优先级高的在前。基数排序基于分别排序，分别收集，所以是稳定的。
+
+算法步骤
+
+1. 取得数组中的最大数，并取得位数，即为迭代次数 $N$（例如：数组中最大数值为 1000，则 $N=4$）；
+2. `A` 为原始数组，从最低位开始取每个位组成 `radix` 数组；
+3. 对 `radix` 进行计数排序（利用计数排序适用于小范围数的特点）；
+4. 将 `radix` 依次赋值给原数组；
+5. 重复 2~4 步骤 $N$ 次
+
+代码实现
+
+```java
+public static int[] radixSort(int[] arr) {
+  	// 只有一个元素直接返回原数组
+    if (arr.length < 2) {
+        return arr;
+    }
+    int N = 1;
+  	// 取得数组中的最大数
+    int maxValue = arr[0];
+    for (int element : arr) {
+        if (element > maxValue) {
+            maxValue = element;
+        }
+    }
+  	// 取位数
+    while (maxValue / 10 != 0) {
+        maxValue = maxValue / 10;
+        N += 1;
+    }
+  	// 如果知道最大值有多少位，可以从这里直接开始
+    for (int i = 0; i < N; i++) {
+        List<List<Integer>> radix = new ArrayList<>();
+        for (int k = 0; k < 10; k++) {
+            radix.add(new ArrayList<Integer>());
+        }
+      	// 核心代码在这里
+        for (int element : arr) {
+            int idx = (element / (int) Math.pow(10, i)) % 10;
+            radix.get(idx).add(element);
+        }
+      	// 将 radix 依次赋值给原数组
+        int idx = 0;
+        for (List<Integer> l : radix) {
+            for (int n : l) {
+                arr[idx++] = n;
+            }
+        }
+    }
+    return arr;
+}
+```
+
+
+
 ## 面试
 
 ### 实现两个线程交替打印1到100
@@ -169,6 +229,10 @@ public class AlternatePrint {
     }
 }
 ```
+
+### 143. 重排链表
+
+[143. 重排链表](https://leetcode.cn/problems/reorder-list/)
 
 
 
@@ -309,9 +373,38 @@ public class Solution {
 示例1
 
 输入
-
 8 12
 
 输出
-
 4 24
+
+```java
+import java.util.Scanner;
+
+public class Main {
+    public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+        long a = scanner.nextLong();
+        long b = scanner.nextLong();
+        
+        long gcd = gcd(a, b);
+        long lcm = lcm(a, b, gcd);
+        
+        System.out.println(gcd + " " + lcm);
+    }
+    
+    // 求最大公约数（GCD）
+    public static long gcd(long a, long b) {
+        if (b == 0) {
+            return a;
+        }
+        return gcd(b, a % b);
+    }
+    
+    // 求最小公倍数（LCM）
+    public static long lcm(long a, long b, long gcd) {
+        return (a / gcd) * b; // 避免溢出
+    }
+}
+```
+
