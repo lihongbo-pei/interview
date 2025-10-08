@@ -171,97 +171,13 @@ private SmsService smsService;
 
 ![spring-bean-lifestyle](assets/spring-bean-lifestyle.png)
 
+## Spring AOP
+
 ### 谈谈自己对于 AOP 的了解
 
-AOP(Aspect-Oriented Programming:面向切面编程)能够将那些与业务无关，却为业务模块所共同调用的逻辑或责任（例如事务处理、日志管理、权限控制等）封装起来，便于减少系统的重复代码，降低模块间的耦合度，并有利于未来的可拓展性和可维护性。
+AOP(Aspect-Oriented Programming:面向切面编程)能够将那些与业务无关，却为业务模块所共同调用的逻辑或责任（例如事务处理、**日志管理**、权限控制等）封装起来，便于减少系统的重复代码，降低模块间的耦合度，并有利于未来的可拓展性和可维护性。
 
-Spring AOP 就是基于动态代理的，如果要代理的对象，实现了某个接口，那么 Spring AOP 会使用 **JDK Proxy**，去创建代理对象，而对于没有实现接口的对象，就无法使用 JDK Proxy 去进行代理了，这时候 Spring AOP 会使用 **Cglib** 生成一个被代理对象的子类来作为代理，如下图所示：
-
-### Spring事务什么时候会失效？
-
-1. 方法不是 `public` 修饰的
-   - Spring AOP 默认是基于**代理**机制的，**只有 `public` 方法才能被代理增强**，也就只有 `public` 方法上的 `@Transactional` 注解才会生效。
-2. 方法调用是 **同类内部方法调用**（即自调用）
-   - 这是最常见的事务失效问题。Spring事务依赖于 AOP 代理，如果你在一个类的方法中**直接调用本类中另一个带有 `@Transactional` 注解的方法**，事务不会生效。
-3. 异常类型不匹配，事务没有回滚
-   - 默认情况下，Spring 只对 **运行时异常（`RuntimeException` 及其子类）和 Error** 进行回滚。
-4. 数据库不支持事务（或操作不在事务范围内）
-5. 事务方法执行在**线程池或异步线程**中
-6. 事务管理器没有配置或配置错误
-7. 数据库连接自动提交（autoCommit = true）
-8. 异常被捕获后没有重新抛出
-
-### Spring 事务的传播行为有哪些？
-
-**事务传播行为是为了解决业务层方法之间互相调用的事务问题**。
-
-当事务方法被另一个事务方法调用时，必须指定事务应该如何传播。例如：方法可能继续在现有事务中运行，也可能开启一个新事务，并在自己的事务中运行。
-
-正确的事务传播行为可能的值如下:
-
-**1.`TransactionDefinition.PROPAGATION_REQUIRED`**
-
-使用的最多的一个事务传播行为，我们平时经常使用的`@Transactional`注解默认使用就是这个事务传播行为。如果当前存在事务，则加入该事务；如果当前没有事务，则创建一个新的事务。
-
-**`2.TransactionDefinition.PROPAGATION_REQUIRES_NEW`**
-
-创建一个新的事务，如果当前存在事务，则把当前事务挂起。也就是说不管外部方法是否开启事务，`Propagation.REQUIRES_NEW`修饰的内部方法会**新开启自己的事务**，且开启的事务相互独立，互不干扰。
-
-**3.`TransactionDefinition.PROPAGATION_NESTED`**
-
-如果当前存在事务，则创建一个事务作为当前事务的**嵌套事务**来运行；如果当前没有事务，则该取值等价于`TransactionDefinition.PROPAGATION_REQUIRED`。
-
-**4.`TransactionDefinition.PROPAGATION_MANDATORY`**
-
-如果当前存在事务，则加入该事务；如果当前没有事务，则抛出异常。（mandatory：强制性）
-
-这个使用的很少。
-
-若是错误的配置以下 3 种事务传播行为，事务将不会发生回滚：
-
-- **`TransactionDefinition.PROPAGATION_SUPPORTS`**: 如果当前存在事务，则加入该事务；如果当前没有事务，则以非事务的方式继续运行。
-- **`TransactionDefinition.PROPAGATION_NOT_SUPPORTED`**: 以非事务方式运行，如果当前存在事务，则把当前事务挂起。
-- **`TransactionDefinition.PROPAGATION_NEVER`**: 以非事务方式运行，如果当前存在事务，则抛出异常。
-
-### AOP
-
-```java
-@Aspect //说明这是切面
-@Component // 切面也是容器中的组件
-
-// 表示切入所有 返回类型为 ApiResult 的公共方法。
-// 是一个环绕通知，会在目标方法 执行前后 执行逻辑，控制方法执行过程。
-// 相比 @Before（前置通知）或 @After（后置通知），@Around 是 功能最强的通知类型
-@Around("execution(public com.littlelee.base.common.util.ApiResult *(..))")
-```
-
-项目中的应用：统一拦截所有 ApiResult 返回类型的方法（Controller层的方法），若打上 @SysLog 注解，则采集操作日志信息并发送至 MQ 消息队列中，支持异常记录、耗时统计、用户信息提取等功能。
-
-项目选用的是**AspectJ**
-
-Spring AOP和AspectJ有什么区别？
-
-| 特性       | Spring AOP                                                | AspectJ                                    |
-| ---------- | --------------------------------------------------------- | ------------------------------------------ |
-| 增强方式   | 运行时增强（基于动态代理）                                | 编译时增强、类加载时增强（直接操作字节码） |
-| 切入点支持 | 方法级（Spring Bean 范围内，不支持 final 和 static 方法） | 方法级、字段、构造器、静态方法等           |
-| 性能       | 运行时依赖代理，有一定开销，切面多时性能较低              | 运行时无代理开销，性能更高                 |
-| 复杂性     | 简单，易用，适合大多数场景                                | 功能强大，但相对复杂                       |
-| 使用场景   | Spring 应用下比较简单的 AOP 需求                          | 高性能、高复杂度的 AOP 需求                |
-
-AOP 常见的通知类型有哪些？
-
-![aspectj-advice-types](assets/aspectj-advice-types.jpg)
-
-**Before**（前置通知）：目标对象的方法调用之前触发
-
-**After** （后置通知）：目标对象的方法调用之后触发
-
-**AfterReturning**（返回通知）：目标对象的方法调用完成，在返回结果值之后触发
-
-**AfterThrowing**（异常通知）：目标对象的方法运行中抛出 / 触发异常后触发。AfterReturning 和 AfterThrowing 两者互斥。如果方法调用成功无异常，则会有返回值；如果方法抛出了异常，则不会有返回值。
-
-**Around** （环绕通知）：编程式控制目标对象的方法调用。环绕通知是所有通知类型中可操作范围最大的一种，因为它可以直接拿到目标对象，以及要执行的方法，所以环绕通知可以任意的在目标对象的方法调用前后搞事，甚至不调用目标对象的方法
+Spring AOP 就是基于**动态代理**的，如果要代理的对象，实现了某个接口，那么 Spring AOP 会使用 **JDK Proxy**，去创建代理对象，而对于没有实现接口的对象，就无法使用 JDK Proxy 去进行代理了，这时候 Spring AOP 会使用 **Cglib** 生成一个被代理对象的子类来作为代理，如下图所示：
 
 ### Spring AOP 在什么场景下会失效
 
@@ -300,6 +216,106 @@ public class AppConfig { ... }
 // 下面是项目中正确的写法
 @Around("execution(public com.littlelee.base.common.util.ApiResult *(..))")
 ```
+
+### Spring AOP和AspectJ有什么区别？
+
+| 特性       | Spring AOP                                                | AspectJ                                    |
+| ---------- | --------------------------------------------------------- | ------------------------------------------ |
+| 增强方式   | 运行时增强（基于动态代理）                                | 编译时增强、类加载时增强（直接操作字节码） |
+| 切入点支持 | 方法级（Spring Bean 范围内，不支持 final 和 static 方法） | 方法级、字段、构造器、静态方法等           |
+| 性能       | 运行时依赖代理，有一定开销，切面多时性能较低              | 运行时无代理开销，性能更高                 |
+| 复杂性     | 简单，易用，适合大多数场景                                | 功能强大，但相对复杂                       |
+| 使用场景   | Spring 应用下比较简单的 AOP 需求                          | 高性能、高复杂度的 AOP 需求                |
+
+### AOP 常见的通知类型有哪些？
+
+![aspectj-advice-types](assets/aspectj-advice-types.jpg)
+
+**Before**（前置通知）：目标对象的方法调用之前触发
+
+**After** （后置通知）：目标对象的方法调用之后触发
+
+**AfterReturning**（返回通知）：目标对象的方法调用完成，在返回结果值之后触发
+
+**AfterThrowing**（异常通知）：目标对象的方法运行中抛出 / 触发异常后触发。AfterReturning 和 AfterThrowing 两者互斥。如果方法调用成功无异常，则会有返回值；如果方法抛出了异常，则不会有返回值。
+
+**Around** （环绕通知）：编程式控制目标对象的方法调用。环绕通知是所有通知类型中可操作范围最大的一种，因为它可以直接拿到目标对象，以及要执行的方法，所以环绕通知可以任意的在目标对象的方法调用前后搞事，甚至不调用目标对象的方法
+
+## Spring 事务
+
+### Spring事务什么时候会失效？
+
+1. 方法不是 `public` 修饰的
+   - Spring AOP 默认是基于**代理**机制的，**只有 `public` 方法才能被代理增强**，也就只有 `public` 方法上的 `@Transactional` 注解才会生效。
+2. 方法调用是 **同类内部方法调用**（即自调用）
+   - 这是最常见的事务失效问题。Spring事务依赖于 AOP 代理，如果你在一个类的方法中**直接调用本类中另一个带有 `@Transactional` 注解的方法**，事务不会生效。
+3. 异常类型不匹配，事务没有回滚
+   - 默认情况下，Spring 只对 **运行时异常（`RuntimeException` 及其子类）和 Error** 进行回滚。
+4. 数据库不支持事务（或操作不在事务范围内）
+5. 事务方法执行在**线程池或异步线程**中
+6. 事务管理器没有配置或配置错误
+7. 数据库连接自动提交（autoCommit = true）
+8. 异常被捕获后没有重新抛出
+
+### Spring 事务的传播行为有哪些？
+
+**事务传播行为是为了解决业务层方法之间互相调用的事务问题**。
+
+当事务方法被另一个事务方法调用时，必须指定事务应该如何传播。例如：方法可能继续在现有事务中运行，也可能开启一个新事务，并在自己的事务中运行。
+
+正确的事务传播行为可能的值如下:
+
+**1.TransactionDefinition.PROPAGATION_REQUIRED**
+
+使用的最多的一个事务传播行为，我们平时经常使用的`@Transactional`注解默认使用就是这个事务传播行为。如果当前存在事务，则加入该事务；如果当前没有事务，则创建一个新的事务。
+
+**2. PROPAGATION_REQUIRES_NEW**
+
+创建一个新的事务，如果当前存在事务，则把当前事务挂起。也就是说不管外部方法是否开启事务，`Propagation.REQUIRES_NEW`修饰的内部方法会**新开启自己的事务**，且开启的事务相互独立，互不干扰。
+
+**3. PROPAGATION_NESTED**
+
+如果当前存在事务，则创建一个事务作为当前事务的**嵌套事务**来运行；如果当前没有事务，则该取值等价于`TransactionDefinition.PROPAGATION_REQUIRED`。
+
+**4. PROPAGATION_MANDATORY**
+
+如果当前存在事务，则加入该事务；如果当前没有事务，则抛出异常。（mandatory：强制性）
+
+这个使用的很少。
+
+若是错误的配置以下 3 种事务传播行为，事务将不会发生回滚：
+
+- **PROPAGATION_SUPPORTS**: 如果当前存在事务，则加入该事务；如果当前没有事务，则以非事务的方式继续运行。
+- **PROPAGATION_NOT_SUPPORTED**: 以非事务方式运行，如果当前存在事务，则把当前事务挂起。
+- **PROPAGATION_NEVER**: 以非事务方式运行，如果当前存在事务，则抛出异常。
+
+### Spring 事务中的隔离级别有哪几种?
+
+和事务传播行为这块一样，为了方便使用，Spring 也相应地定义了一个枚举类：`Isolation`
+
+下面我依次对每一种事务隔离级别进行介绍：
+
+- **TransactionDefinition.ISOLATION_DEFAULT** :使用后端数据库默认的隔离级别，MySQL 默认采用的 `REPEATABLE_READ` 隔离级别 Oracle 默认采用的 `READ_COMMITTED` 隔离级别.
+- **ISOLATION_READ_UNCOMMITTED** :最低的隔离级别，使用这个隔离级别很少，因为它允许读取尚未提交的数据变更，**可能会导致脏读、幻读或不可重复读**
+- **ISOLATION_READ_COMMITTED** : 允许读取并发事务已经提交的数据，**可以阻止脏读，但是幻读或不可重复读仍有可能发生**
+- **ISOLATION_REPEATABLE_READ** : 对同一字段的多次读取结果都是一致的，除非数据是被本身事务自己所修改，**可以阻止脏读和不可重复读，但幻读仍有可能发生。**
+- **ISOLATION_SERIALIZABLE** : 最高的隔离级别，完全服从 ACID 的隔离级别。所有的事务依次逐个执行，这样事务之间就完全不可能产生干扰，也就是说，**该级别可以防止脏读、不可重复读以及幻读**。但是这将严重影响程序的性能。通常情况下也不会用到该级别。
+
+## AOP
+
+```java
+@Aspect //说明这是切面
+@Component // 切面也是容器中的组件
+
+// 表示切入所有 返回类型为 ApiResult 的公共方法。
+// 是一个环绕通知，会在目标方法 执行前后 执行逻辑，控制方法执行过程。
+// 相比 @Before（前置通知）或 @After（后置通知），@Around 是 功能最强的通知类型
+@Around("execution(public com.littlelee.base.common.util.ApiResult *(..))")
+```
+
+项目中的应用：统一拦截所有 ApiResult 返回类型的方法（Controller层的方法），若打上 @SysLog 注解，则采集操作日志信息并发送至 MQ 消息队列中，支持异常记录、耗时统计、用户信息提取等功能。
+
+项目选用的是**AspectJ**
 
 ###  SpringMVC 工作原理了解吗?
 

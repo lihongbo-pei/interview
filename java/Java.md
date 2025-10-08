@@ -220,6 +220,30 @@ public boolean equals(Object anObject) {
 
 相信大家看了我前面对 `hashCode()` 和 `equals()` 的介绍之后，下面这个问题已经难不倒你们了。
 
+### ⭐️String、StringBuffer、StringBuilder 的区别？
+
+**可变性**
+
+`String` 是不可变的。
+
+`StringBuilder` 与 `StringBuffer` 都继承自 `AbstractStringBuilder` 类，在 `AbstractStringBuilder` 中也是使用字符数组保存字符串，不过没有使用 `final` 和 `private` 关键字修饰，最关键的是这个 `AbstractStringBuilder` 类还提供了很多修改字符串的方法比如 `append` 方法。
+
+**线程安全性**
+
+`String` 中的对象是不可变的，也就可以理解为常量，线程安全。`AbstractStringBuilder` 是 `StringBuilder` 与 `StringBuffer` 的公共父类，定义了一些字符串的基本操作，如 `expandCapacity`、`append`、`insert`、`indexOf` 等公共方法。`StringBuffer` 对方法加了同步锁或者对调用的方法加了同步锁，所以是线程安全的。`StringBuilder` 并没有对方法进行加同步锁，所以是非线程安全的。
+
+**性能**
+
+每次对 `String` 类型进行改变的时候，都会生成一个新的 `String` 对象，然后将指针指向新的 `String` 对象。`StringBuffer` 每次都会对 `StringBuffer` 对象本身进行操作，而不是生成新的对象并改变对象引用。相同情况下使用 `StringBuilder` 相比使用 `StringBuffer` 仅能获得 10%~15% 左右的性能提升，但却要冒多线程不安全的风险。
+
+**对于三者使用的总结：**
+
+- 操作少量的数据: 适用 `String`
+- 单线程操作字符串缓冲区下操作大量数据: 适用 `StringBuilder`
+- 多线程操作字符串缓冲区下操作大量数据: 适用 `StringBuffer`
+
+
+
 ## 集合
 
 ### Java中有哪些集合类
@@ -652,6 +676,22 @@ final V putVal(int hash, K key, V value, boolean onlyIfAbsent,
 - hashMap虽然支持key和value为null，但是null作为key只能有一个，null作为value可以有多个；
 - 因为hashMap中，如果key值一样，那么会覆盖相同key值的value为最新，所以key为null只能有一个。
 
+### HashMap里的put方法的流程
+
+HashMap 只提供了 put 用于添加元素，putVal 方法只是给 put 方法调用的一个方法，并没有提供给用户使用。
+
+**对 putVal 方法添加元素的分析如下：**
+
+1. 如果定位到的数组位置没有元素就直接插入。
+2. 如果定位到的数组位置有元素就和要插入的 key 比较，如果 key 相同就直接覆盖，如果 key 不相同，就判断 p 是否是一个树节点，如果是就调用`e = ((TreeNode<K,V>)p).putTreeVal(this, tab, hash, key, value)`将元素添加进入。如果不是就遍历链表插入(插入的是链表尾部)。
+
+**我们再来对比一下 JDK1.7 put 方法的代码**
+
+**对于 put 方法的分析如下：**
+
+- ① 如果定位到的数组位置没有元素 就直接插入。
+- ② 如果定位到的数组位置有元素，遍历以这个元素为头结点的链表，依次和插入的 key 比较，如果 key 相同就直接覆盖，不同就采用**头插法**插入元素。
+
 ### HashMap常用方法
 
 ```java
@@ -690,13 +730,42 @@ JDK 1.8 ConcurrentHashMap 主要通过 volatile + CAS 或者 synchronized 来实
 
 而且 JDK 1.8 使用的是红黑树优化了之前的固定链表，那么当数据量比较大的时候，查询性能也得到了很大的提升，从之前的 O(n) 优化到了 O(logn) 的时间复杂度。
 
-### Set
+### ⭐️ConcurrentHashMap 和 Hashtable 的区别
+
+ConcurrentHashMap 和 Hashtable 的区别主要体现在实现线程安全的方式上不同。
+
+- **底层数据结构：** 
+  - JDK1.7 的 ConcurrentHashMap 底层采用 **分段的数组+链表** 实现，在 JDK1.8 中采用的数据结构跟 `HashMap` 的结构一样，数组+链表/红黑二叉树。
+  - Hashtable 和 JDK1.8 之前的 HashMap 的底层数据结构类似都是采用 **数组+链表** 的形式，数组是 HashMap 的主体，链表则是主要为了解决哈希冲突而存在的；
+
+- **实现线程安全的方式（重要）：**
+  - 在 JDK1.7 的时候，ConcurrentHashMap 对整个桶数组进行了分割分段(`Segment`，分段锁)，每一把锁只锁容器其中一部分数据（下面有示意图），多线程访问容器里不同数据段的数据，就不会存在锁竞争，提高并发访问率。
+  - 到了 JDK1.8 的时候，`ConcurrentHashMap` 已经摒弃了 `Segment` 的概念，而是直接用 `Node` 数组+链表+红黑树的数据结构来实现，并发控制使用 `synchronized` 和 CAS 来操作。（JDK1.6 以后 `synchronized` 锁做了很多优化） 整个看起来就像是优化过且线程安全的 `HashMap`，虽然在 JDK1.8 中还能看到 `Segment` 的数据结构，但是已经简化了属性，只是为了兼容旧版本；
+  - **`Hashtable`(同一把锁)** :使用 `synchronized` 来保证线程安全，效率非常低下。当一个线程访问同步方法时，其他线程也访问同步方法，可能会进入阻塞或轮询状态，如使用 put 添加元素，另一个线程不能使用 put 添加元素，也不能使用 get，竞争会越来越激烈效率越低。
+
+下面，我们再来看看两者底层数据结构的对比图。
+
+
+
+## Set
 
 ### Set集合有什么特点？如何实现key无重复的？ 
 
 - set集合特点：Set集合中的元素是唯一的，不会出现重复的元素。 
 
 - set实现原理：Set集合通过内部的数据结构（如哈希表、红黑树等）来实现key的无重复。当向 Set集合中插入元素时，会先根据元素的hashCode值来确定元素的存储位置，然后再通过 equals方法来判断是否已经存在相同的元素，如果存在则不会再次插入，保证了元素的唯一 性。
+
+### 比较 HashSet、LinkedHashSet 和 TreeSet 三者的异同
+
+- 都是 `Set` 接口的实现类，都能保证元素唯一，并且都不是线程安全的。
+- 主要区别在于底层数据结构不同。
+  - `HashSet` 的底层数据结构是哈希表（基于 `HashMap` 实现）。
+  - `LinkedHashSet` 的底层数据结构是链表和哈希表，元素的插入和取出顺序满足 FIFO。
+  - `TreeSet` 底层数据结构是红黑树，元素是有序的，排序的方式有自然排序和定制排序。
+- 底层数据结构不同又导致这三者的应用场景不同。
+  - `HashSet` 用于不需要保证元素插入和取出顺序的场景，
+  - `LinkedHashSet` 用于保证元素的插入和取出顺序满足 FIFO 的场景，
+  - `TreeSet` 用于支持对元素自定义排序规则的场景。
 
 ## IO
 

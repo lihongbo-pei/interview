@@ -397,6 +397,43 @@ select * from t_user where id = 1 or age = 18;
 
 ![AID-_C](assets/AID-_C.png)
 
+### 并发事务带来了哪些问题?
+
+#### 脏读（Dirty read）
+
+一个事务读取数据并且对数据进行了修改，这个修改对其他事务来说是可见的，即使当前事务没有提交。这时另外一个事务读取了这个还未提交的数据，但第一个事务突然回滚，导致数据并没有被提交到数据库，那第二个事务读取到的就是脏数据，这也就是脏读的由来。
+
+例如：事务 1 读取某表中的数据 A=20，事务 1 修改 A=A-1，事务 2 读取到 A = 19,事务 1 回滚导致对 A 的修改并未提交到数据库， A 的值还是 20。
+
+![concurrency-consistency-issues-dirty-reading-C1rL9lNt](assets/concurrency-consistency-issues-dirty-reading-C1rL9lNt.png)
+
+#### 不可重复读（Unrepeatable read）
+
+指在一个事务内多次读同一数据。在这个事务还没有结束时，另一个事务也访问该数据。那么，在第一个事务中的两次读数据之间，由于第二个事务的修改导致第一个事务两次读取的数据可能不太一样。这就发生了在一个事务内两次读到的数据是不一样的情况，因此称为不可重复读。
+
+例如：事务 1 读取某表中的数据 A=20，事务 2 也读取 A=20，事务 1 修改 A=A-1，事务 2 再次读取 A =19，此时读取的结果和第一次读取的结果不同。
+
+![concurrency-consistency-issues-unrepeatable-read-RYuQTZvh](assets/concurrency-consistency-issues-unrepeatable-read-RYuQTZvh.png)
+
+#### 幻读（Phantom read）
+
+幻读与不可重复读类似。它发生在一个事务读取了几行数据，接着另一个并发事务插入了一些数据时。在随后的查询中，第一个事务就会发现多了一些原本不存在的记录，就好像发生了幻觉一样，所以称为幻读。
+
+例如：事务 2 读取某个范围的数据，事务 1 在这个范围插入了新的数据，事务 2 再次读取这个范围的数据发现相比于第一次读取的结果多了新的数据。
+
+![concurrency-consistency-issues-phantom-read-D-ETycCp](assets/concurrency-consistency-issues-phantom-read-D-ETycCp.png)
+
+
+
+### 不可重复读和幻读有什么区别？
+
+- 不可重复读的重点是内容修改或者记录减少比如多次读取一条记录发现其中某些记录的值被修改；
+- 幻读的重点在于记录新增比如多次执行同一条查询语句（DQL）时，发现查到的记录增加了。
+
+幻读其实可以看作是不可重复读的一种特殊情况，单独把幻读区分出来的原因主要是解决幻读和不可重复读的方案不一样。
+
+举个例子：执行 `delete` 和 `update` 操作的时候，可以直接对记录加锁，保证事务安全。而执行 `insert` 操作的时候，由于记录锁（Record Lock）只能锁住已经存在的记录，为了避免插入新记录，需要依赖**间隙锁（Gap Lock）**。也就是说执行 `insert` 操作的时候需要依赖 Next-Key Lock（Record Lock+Gap Lock） 进行加锁来保证不出现幻读。
+
 ### SQL 标准定义了哪些事务隔离级别?
 
 SQL 标准定义了四种事务隔离级别，用来平衡事务的隔离性（Isolation）和并发性能。级别越高，数据一致性越好，但并发性能可能越低。这四个级别是：
@@ -423,15 +460,6 @@ SELECT @@GLOBAL.tx_isolation, @@tx_isolation;
 可以看到，默认的隔离级别为 REPEATABLE-READ，全局隔离级别和当前会话隔离级别皆是如此。
 
 不可重复读和脏读的区别在于，脏读是看到了其他事务未提交的数据，而不可重复读是看到了其他事务已经提交的数据（由于当前 SQL 也是在事务中，因此有可能并不想看到其他事务已经提交的数据）。
-
-### 不可重复读和幻读有什么区别？
-
-- 不可重复读的重点是内容修改或者记录减少比如多次读取一条记录发现其中某些记录的值被修改；
-- 幻读的重点在于记录新增比如多次执行同一条查询语句（DQL）时，发现查到的记录增加了。
-
-幻读其实可以看作是不可重复读的一种特殊情况，单独把幻读区分出来的原因主要是解决幻读和不可重复读的方案不一样。
-
-举个例子：执行 `delete` 和 `update` 操作的时候，可以直接对记录加锁，保证事务安全。而执行 `insert` 操作的时候，由于记录锁（Record Lock）只能锁住已经存在的记录，为了避免插入新记录，需要依赖间隙锁（Gap Lock）。也就是说执行 `insert` 操作的时候需要依赖 Next-Key Lock（Record Lock+Gap Lock） 进行加锁来保证不出现幻读。
 
 ## 锁
 
@@ -470,11 +498,37 @@ lock tables t_stuent write;
 
 #### 行级锁
 
+### InnoDB 有哪几类行锁？
+
+InnoDB 行锁是通过对索引数据页上的记录加锁实现的，MySQL InnoDB 支持三种行锁定方式：
+
+- **记录锁（Record Lock）**：属于单个行记录上的锁。
+- **间隙锁（Gap Lock）**：锁定一个范围，不包括记录本身。
+- **临键锁（Next-Key Lock）**：Record Lock+Gap Lock，锁定一个范围，包含记录本身，主要目的是为了解决幻读问题（MySQL 事务部分提到过）。记录锁只能锁住已经存在的记录，为了避免插入新记录，需要依赖间隙锁。
+
+在 InnoDB 默认的隔离级别 REPEATABLE-READ 下，行锁默认使用的是 Next-Key Lock。但是，如果操作的索引是唯一索引或主键，InnoDB 会对 Next-Key Lock 进行优化，将其降级为 Record Lock，即仅锁住索引本身，而不是范围。
+
 ## 日志
 
 ### redo log
 
+redo log（重做日志）是 InnoDB 存储引擎独有的，它让 MySQL 拥有了崩溃恢复能力。
+
+比如 MySQL 实例挂了或宕机了，重启时，InnoDB 存储引擎会使用 redo log 恢复数据，保证数据的持久性与完整性。
+
+MySQL 中数据是**以页为单位**，你查询一条记录，会从硬盘把一页的数据加载出来，加载出来的数据叫数据页，会放入到 `Buffer Pool` 中。
+
+后续的查询都是先从 `Buffer Pool` 中找，没有命中再去硬盘加载，减少硬盘 IO 开销，提升性能。
+
+更新表数据的时候，也是如此，发现 `Buffer Pool` 里存在要更新的数据，就直接在 `Buffer Pool` 里更新。
+
+然后会把“在某个数据页上做了什么修改”记录到重做日志缓存（`redo log buffer`）里，接着刷盘到 redo log 文件里。
+
 ![redo_log_1](assets/redo_log_1.png)
+
+理想情况，事务一提交就会进行刷盘操作，但实际上，刷盘的时机是根据策略来进行的。
+
+每条 redo 记录由“表空间号+数据页号+偏移量+修改数据长度+具体修改的数据”组成
 
 我们要注意设置正确的刷盘策略`innodb_flush_log_at_trx_commit` 。根据 MySQL 配置的刷盘策略的不同，MySQL 宕机之后可能会存在轻微的数据丢失问题。
 
