@@ -241,6 +241,20 @@ public class AppConfig { ... }
 
 **Around** （环绕通知）：编程式控制目标对象的方法调用。环绕通知是所有通知类型中可操作范围最大的一种，因为它可以直接拿到目标对象，以及要执行的方法，所以环绕通知可以任意的在目标对象的方法调用前后搞事，甚至不调用目标对象的方法
 
+```java
+@Aspect //说明这是切面
+@Component // 切面也是容器中的组件
+
+// 表示切入所有 返回类型为 ApiResult 的公共方法。
+// 是一个环绕通知，会在目标方法 执行前后 执行逻辑，控制方法执行过程。
+// 相比 @Before（前置通知）或 @After（后置通知），@Around 是 功能最强的通知类型
+@Around("execution(public com.littlelee.base.common.util.ApiResult *(..))")
+```
+
+项目中的应用：统一拦截所有 ApiResult 返回类型的方法（Controller层的方法），若打上 @SysLog 注解，则采集操作日志信息并发送至 MQ 消息队列中，支持异常记录、耗时统计、用户信息提取等功能。
+
+项目选用的是**AspectJ**
+
 ## Spring 事务
 
 ### Spring事务什么时候会失效？
@@ -265,19 +279,25 @@ public class AppConfig { ... }
 
 正确的事务传播行为可能的值如下:
 
-**1.TransactionDefinition.PROPAGATION_REQUIRED**
+```java
+@Transactional(propagation = Propagation.REQUIRED,
+                isolation = Isolation.DEFAULT, readOnly = false, timeout = -1)
+
+```
+
+**1.REQUIRED**
 
 使用的最多的一个事务传播行为，我们平时经常使用的`@Transactional`注解默认使用就是这个事务传播行为。如果当前存在事务，则加入该事务；如果当前没有事务，则创建一个新的事务。
 
-**2. PROPAGATION_REQUIRES_NEW**
+**2. REQUIRES_NEW**
 
-创建一个新的事务，如果当前存在事务，则把当前事务挂起。也就是说不管外部方法是否开启事务，`Propagation.REQUIRES_NEW`修饰的内部方法会**新开启自己的事务**，且开启的事务相互独立，互不干扰。
+创建一个新的事务，如果当前存在事务，则把当前事务挂起。也就是说不管外部方法是否开启事务，`REQUIRES_NEW`修饰的内部方法会**新开启自己的事务**，且开启的事务相互独立，互不干扰。
 
-**3. PROPAGATION_NESTED**
+**3. NESTED**
 
-如果当前存在事务，则创建一个事务作为当前事务的**嵌套事务**来运行；如果当前没有事务，则该取值等价于`TransactionDefinition.PROPAGATION_REQUIRED`。
+如果当前存在事务，则创建一个事务作为当前事务的**嵌套事务**来运行；如果当前没有事务，则该取值等价于`REQUIRED`。
 
-**4. PROPAGATION_MANDATORY**
+**4. MANDATORY**
 
 如果当前存在事务，则加入该事务；如果当前没有事务，则抛出异常。（mandatory：强制性）
 
@@ -285,9 +305,9 @@ public class AppConfig { ... }
 
 若是错误的配置以下 3 种事务传播行为，事务将不会发生回滚：
 
-- **PROPAGATION_SUPPORTS**: 如果当前存在事务，则加入该事务；如果当前没有事务，则以非事务的方式继续运行。
-- **PROPAGATION_NOT_SUPPORTED**: 以非事务方式运行，如果当前存在事务，则把当前事务挂起。
-- **PROPAGATION_NEVER**: 以非事务方式运行，如果当前存在事务，则抛出异常。
+- **SUPPORTS**: 如果当前存在事务，则加入该事务；如果当前没有事务，则以非事务的方式继续运行。
+- **NOT_SUPPORTED**: 以非事务方式运行，如果当前存在事务，则把当前事务挂起。
+- **NEVER**: 以非事务方式运行，如果当前存在事务，则抛出异常。
 
 ### Spring 事务中的隔离级别有哪几种?
 
@@ -301,21 +321,7 @@ public class AppConfig { ... }
 - **ISOLATION_REPEATABLE_READ** : 对同一字段的多次读取结果都是一致的，除非数据是被本身事务自己所修改，**可以阻止脏读和不可重复读，但幻读仍有可能发生。**
 - **ISOLATION_SERIALIZABLE** : 最高的隔离级别，完全服从 ACID 的隔离级别。所有的事务依次逐个执行，这样事务之间就完全不可能产生干扰，也就是说，**该级别可以防止脏读、不可重复读以及幻读**。但是这将严重影响程序的性能。通常情况下也不会用到该级别。
 
-## AOP
-
-```java
-@Aspect //说明这是切面
-@Component // 切面也是容器中的组件
-
-// 表示切入所有 返回类型为 ApiResult 的公共方法。
-// 是一个环绕通知，会在目标方法 执行前后 执行逻辑，控制方法执行过程。
-// 相比 @Before（前置通知）或 @After（后置通知），@Around 是 功能最强的通知类型
-@Around("execution(public com.littlelee.base.common.util.ApiResult *(..))")
-```
-
-项目中的应用：统一拦截所有 ApiResult 返回类型的方法（Controller层的方法），若打上 @SysLog 注解，则采集操作日志信息并发送至 MQ 消息队列中，支持异常记录、耗时统计、用户信息提取等功能。
-
-项目选用的是**AspectJ**
+## Spring MVC
 
 ###  SpringMVC 工作原理了解吗?
 
@@ -367,3 +373,69 @@ Spring 中的三级缓存其实就是三个 Map，如下：
 2. 如果不存在或者对象正在创建中，于是去 **二级缓存 `earlySingletonObjects`** 中获取；
 3. 如果还没有获取到，就去 **三级缓存 `singletonFactories`** 中获取，通过执行 `ObjectFacotry` 的 `getObject()` 就可以获取该对象，获取成功之后，从三级缓存移除，并将该对象加入到二级缓存中。
 
+## 常用注解
+
+### 配置
+
+#### 声明配置类
+
+`@Configuration` 主要用于声明一个类是 Spring 的配置类。虽然也可以用 `@Component` 注解替代，但 `@Configuration` 能够更明确地表达该类的用途（定义 Bean），语义更清晰，也便于 Spring 进行特定的处理（例如，通过 CGLIB 代理确保 `@Bean` 方法的单例行为）。
+
+```java
+@Configuration
+public class AppConfig {
+
+    // @Bean 注解用于在配置类中声明一个 Bean
+    @Bean
+    public TransferService transferService() {
+        return new TransferServiceImpl();
+    }
+
+    // 配置类中可以包含一个或多个 @Bean 方法。
+}
+```
+
+#### 读取配置信息
+
+在应用程序开发中，我们经常需要管理一些配置信息，例如数据库连接细节、第三方服务（如阿里云 OSS、短信服务、微信认证）的密钥或地址等。通常，这些信息会**集中存放在配置文件**（如 `application.yml` 或 `application.properties`）中，方便管理和修改。
+
+Spring 提供了多种便捷的方式来读取这些配置信息。假设我们有如下 `application.yml` 文件：
+
+下面介绍几种常用的读取配置的方式：
+
+1、`@Value("${property.key}")` 注入配置文件（如 `application.properties` 或 `application.yml`）中的单个属性值。它还支持 Spring 表达式语言 (SpEL)，可以实现更复杂的注入逻辑。
+
+```java
+@Value("${wuhan2020}")
+String wuhan2020;
+```
+
+2、`@ConfigurationProperties`可以读取配置信息并与 Bean 绑定，用的更多一些。
+
+```java
+@Component
+@ConfigurationProperties(prefix = "library")
+class LibraryProperties {
+    @NotEmpty
+    private String location;
+    private List<Book> books;
+
+    @Setter
+    @Getter
+    @ToString
+    static class Book {
+        String name;
+        String description;
+    }
+  省略getter/setter
+  ......
+}
+```
+
+你可以像使用普通的 Spring Bean 一样，将其注入到类中使用。
+
+#### 加载指定的配置文件
+
+`@PropertySource` 注解允许加载自定义的配置文件。适用于需要将部分配置信息独立存储的场景。
+
+**注意**：当使用 `@PropertySource` 时，确保外部文件路径正确，且文件在类路径（classpath）中。

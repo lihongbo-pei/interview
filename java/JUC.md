@@ -70,7 +70,27 @@ public static void main(String[] args) {
 | 方法     | run()              | call()，可以有返回值并且可以抛出异常                         |
 | 实现方式 | 直接扔给Thread类   | 需将它包装进一个FutureTask，因为Thread类的构造器只接受 Runnable参数 |
 
+### sleep() 方法和 wait() 方法对比
 
+> 汉得笔试
+
+**共同点**：两者都可以暂停线程的执行。
+
+**区别**：
+
+- **`sleep()` 方法没有释放锁，而 `wait()` 方法释放了锁** 。
+- `wait()` 通常被用于线程间交互/通信，`sleep()`通常被用于暂停执行。
+- `wait()` 方法被调用后，线程不会自动苏醒，需要别的线程调用同一个对象上的 `notify()`或者 `notifyAll()` 方法。`sleep()`方法执行完成后，线程会自动苏醒，或者也可以使用 `wait(long timeout)` 超时后线程会自动苏醒。
+- `sleep()` 是 `Thread` 类的静态本地方法，`wait()` 则是 `Object` 类的本地方法。
+
+### notify 和 notifyAll 的区别?
+
+同样是唤醒等待的线程，同样最多只有一个线程能获得锁，同样不能控制哪个线程获得锁。
+
+区别在于：
+
+- notify：唤醒一个线程，其他线程依然处于wait的等待唤醒状态，如果被唤醒的线程结束时没调用notify，其他线程就永远没人去唤醒，只能等待超时，或者被中断；
+- notifyAll：所有线程退出wait的状态，开始竞争锁，但只有一个线程能抢到，这个线程执行完后，其他线程又会有一个幸运儿脱颖而出得到锁。
 
 ## 并发安全
 
@@ -119,7 +139,7 @@ AtomicInteger counter = new AtomicInteger(0);
 int newValue = counter.incrementAndGet();
 ```
 
-- **线程局部变量**：`ThreadLocal` 类可以为每个线程提供独立的变量副本，这样每个线程都拥有自己的变量，消除了竞争条件。
+- **线程局部变量**：ThreadLocal 类可以为每个线程提供独立的变量副本，这样每个线程都拥有自己的变量，消除了竞争条件。
   
   ```java
   ThreadLocal<Integer> threadLocalVar = new ThreadLocal<>();
@@ -127,9 +147,9 @@ int newValue = counter.incrementAndGet();
   int value = threadLocalVar.get();
   ```
   
-- **并发集合**：使用 `java.util.concurrent` 包中的线程安全集合，如 `ConcurrentHashMap`、`ConcurrentLinkedQueue` 等，这些集合内部已经实现了线程安全的逻辑。
+- **并发集合**：使用 `java.util.concurrent` 包中的线程安全集合，如 ConcurrentHashMap 、ConcurrentLinkedQueue 等，这些集合内部已经实现了线程安全的逻辑。
 
-- **JUC工具类**：使用 `java.util.concurrent` 包中的一些工具类可以用于控制线程间的同步和协作。例如：`Semaphore` 和 `CyclicBarrier` 等。
+- **JUC工具类**：使用 `java.util.concurrent` 包中的一些工具类可以用于控制线程间的同步和协作。例如：Semaphore 和 CyclicBarrier 等。
 
 ### juc包下你常用的类？
 
@@ -180,6 +200,31 @@ CAS 和 AQS 两者的区别：
 
 CAS 和 AQS 两者的联系：
 - CAS 为 AQS 提供原子操作支持：AQS 内部使用 CAS 操作来更新 state 变量，以实现线程安全的状态修改。在 acquire 操作中，当线程尝试获取资源时，会使用 CAS 操作尝试将 state 从一个值更新为另一个值，如果更新失败，说明资源已被占用，线程会进入等待队列。在 release 操作中，当线程释放资源时，也会使用 CAS 操作将 state 恢复到相应的值，以保证状态更新的原子性。
+
+### CAS 算法存在哪些问题？
+
+ABA 问题是 CAS 算法最常见的问题。
+
+#### ABA 问题
+
+如果一个变量 V 初次读取的时候是 A 值，并且在准备赋值的时候检查到它仍然是 A 值，那我们就能说明它的值没有被其他线程修改过了吗？很明显是不能的，因为在这段时间它的值可能被改为其他值，然后又改回 A，那 CAS 操作就会误认为它从来没有被修改过。这个问题被称为 CAS 操作的 **"ABA"问题。**
+
+ABA 问题的解决思路是在变量前面追加上**版本号或者时间戳**。JDK 1.5 以后的 `AtomicStampedReference` 类就是用来解决 ABA 问题的，其中的 `compareAndSet()` 方法就是首先检查当前引用是否等于预期引用，并且当前标志是否等于预期标志，如果全部相等，则以原子方式将该引用和该标志的值设置为给定的更新值。
+
+```java
+public boolean compareAndSet(V   expectedReference,
+                             V   newReference,
+                             int expectedStamp,
+                             int newStamp) {
+    Pair<V> current = pair;
+    return
+        expectedReference == current.reference &&
+        expectedStamp == current.stamp &&
+        ((newReference == current.reference &&
+          newStamp == current.stamp) ||
+         casPair(current, Pair.of(newReference, newStamp)));
+}
+```
 
 ### Threadlocal作用，原理，具体里面存的key value是啥，会有什么问题，如何解决? 
 
@@ -266,7 +311,7 @@ double area = width * height;   // C
 
 ### ReentrantLock 是什么？
 
-ReentrantLock 实现了 Lock 接口，是一个可重入且独占式的锁，和 `synchronized` 关键字类似。不过，ReentrantLock 更灵活、更强大，增加了轮询、超时、中断、公平锁和非公平锁等高级功能。
+ReentrantLock 实现了 Lock 接口，是一个可重入且**独占式**的锁，和 `synchronized` 关键字类似。不过，ReentrantLock 更灵活、更强大，增加了轮询、超时、中断、公平锁和非公平锁等高级功能。
 
 ```java
 public class ReentrantLock implements Lock, java.io.Serializable {}
