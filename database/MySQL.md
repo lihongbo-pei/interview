@@ -366,7 +366,7 @@ ALTER TABLE `cus_order` ADD INDEX id_score_name(score, name);
 
 ### 索引失效情况
 
-1、对索引使用左或者左右模糊匹配
+1、对索引使用左或者左右**模糊匹配**
 
 ```sql
 // name 字段为二级索引
