@@ -439,3 +439,56 @@ class LibraryProperties {
 `@PropertySource` 注解允许加载自定义的配置文件。适用于需要将部分配置信息独立存储的场景。
 
 **注意**：当使用 `@PropertySource` 时，确保外部文件路径正确，且文件在类路径（classpath）中。
+
+## SpringBoot
+
+### SpringBoot比Spring好在哪里
+
+- Spring Boot 提供了自动化配置，大大简化了项目的配置过程。通过**约定优于配置**的原则，很多常用的配置可以自动完成，开发者可以专注于业务逻辑的实现。
+- Spring Boot 提供了快速的项目启动器，通过引入不同的 Starter，可以快速集成常用的框架和库（如数据库、消息队列、Web 开发等），极大地提高了开发效率。
+- Spring Boot 默认集成了多种内嵌服务器（如Tomcat、Jetty、Undertow），无需额外配置，即可将应用打包成可执行的 JAR 文件，方便部署和运行。
+
+### SpringBoot 自动装配原理详解
+
+SpringBoot的自动配置核心靠一个注解 `@EnableAutoConfiguration` ，它其实就是导入了一个类 AutoConfigurationImportSelector，那这个类会通过 **SpringFactoriesLoader** 去扫描你项目里所有依赖包下的 META-INF/spring.factories文件，那里面列了一大堆配置类，像什么 DataSourceAutoConfiguration、WebMvcAutoConfiguration之类的，那SpringBoot启动时会把这些类按需加载进来。
+
+那为啥说是按需，因为这些类通常都配了各种**条件注解**，比如 
+
+- `@ConditionalOnClass` ，你依赖有没有这个类，有才加载。
+- `@ConditionalOnMissingBean` ，你自己没配，我才出手
+- `@ConditionalOnProperty` ，配置文件里开了这个开关，我才加载
+
+你可以理解为SpringBoot启动时一边翻spring.factories，一边像个侦探查条件符不符合，满足才配置，那这才是它开箱即用，但灵活可控的核心逻辑。那说到底它不是全自动，而是有条件的自动。总结一下：
+
+EnableAutoConfiguration注解 + spring.factories 配置文件 + 一堆Conditional条件注解一起搞定
+
+SpringBoot启动类上你每次写的 @SpringBootApplication 其实就是一个组合注解，大概可以把 `@SpringBootApplication`看作是 `@Configuration`、`@EnableAutoConfiguration`、`@ComponentScan` 注解的集合。
+
+```java
+@SpringBootApplication
+public class DemoApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(DemoApplication.class, args);
+    }
+}
+```
+
+里面就包含了 @EnableAutoConfiguration，而这个 @EnableAutoConfiguration 里面就import了 AutoConfigurationImportSelector，那这个selector有500多行代码，它的核心作用就是通过 SpringFactoriesLoader，从 META-INF/spring.factories 文件中加载配置类。
+
+```java
+@Target({ElementType.TYPE})
+@Retention(RetentionPolicy.RUNTIME)
+@Documented
+@Inherited
+@AutoConfigurationPackage //作用：将main包下的所有组件注册到容器中
+@Import({AutoConfigurationImportSelector.class}) //加载自动装配类 xxxAutoconfiguration
+public @interface EnableAutoConfiguration {
+    String ENABLED_OVERRIDE_PROPERTY = "spring.boot.enableautoconfiguration";
+
+    Class<?>[] exclude() default {};
+
+    String[] excludeName() default {};
+}
+```
+
+那spring.factories文件其实也很简单，来看一下mybatis-plus写的就是一堆key value结构，你随便点一个进去，里面就出现了我们前面提到的各种条件注解，控制它啥时候加载，怎么配置，上面这一套逻辑是spring boot2.x版本的写法，那spring boot3.x之后换了机制。
