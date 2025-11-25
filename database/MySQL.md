@@ -42,8 +42,6 @@ INSERT INTO 表名 (列1, 列2, ..., 列n) VALUES (值1, 值2, ..., 值n);
 UPDATE 表名 SET 列1 = 值1, 列2 = 值2, ..., 列n = 值n WHERE 条件;
 ```
 
-
-
 ### LIMIT
 
 ```sql
@@ -159,8 +157,6 @@ ALTER TABLE detect_img_records ALTER del_flag SET DEFAULT 0;
 ALTER TABLE detect_video_records ALTER del_flag SET DEFAULT 0;
 ALTER TABLE detect_camera_records ALTER del_flag SET DEFAULT 0;
 ```
-
-
 
 ## 存储引擎
 

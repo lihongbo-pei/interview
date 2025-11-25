@@ -575,7 +575,7 @@ new ThreadPoolExecutor(
 
 新任务来的时候会先判断当前运行的线程数量是否达到核心线程数，如果达到的话，新任务就会被存放在队列中。
 
-不同的线程池会选用不同的阻塞队列，我们可以结合内置线程池来分析。
+不同的线程池会选用不同的**阻塞队列**，我们可以结合内置线程池来分析。
 
 - 容量为 `Integer.MAX_VALUE` 的 LinkedBlockingQueue（有界阻塞队列）：`FixedThreadPool` 和 `SingleThreadExecutor` 。`FixedThreadPool`最多只能创建核心线程数的线程（核心线程数和最大线程数相等），`SingleThreadExecutor`只能创建一个线程（核心线程数和最大线程数都是 1），二者的任务队列永远不会被放满。
 - SynchronousQueue（同步队列）：`CachedThreadPool` 。SynchronousQueue 没有容量，不存储元素，目的是保证对于提交的任务，如果有空闲线程，则使用空闲线程来处理；否则新建一个线程来处理任务。也就是说，`CachedThreadPool` 的最大线程数是 `Integer.MAX_VALUE` ，可以理解为线程数是可以无限扩展的，可能会创建大量线程，从而导致 OOM。

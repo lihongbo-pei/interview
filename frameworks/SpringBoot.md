@@ -492,3 +492,24 @@ public @interface EnableAutoConfiguration {
 ```
 
 那spring.factories文件其实也很简单，来看一下mybatis-plus写的就是一堆key value结构，你随便点一个进去，里面就出现了我们前面提到的各种条件注解，控制它啥时候加载，怎么配置，上面这一套逻辑是spring boot2.x版本的写法，那spring boot3.x之后换了机制。
+
+###  SpringBoot里面有哪些重要的注解？还有一个配置相关的注解是哪个？
+
+> 北森一面
+
+Spring Boot 中一些常用的注解包括：
+
+- **@SpringBootApplication**：用于标注主应用程序类，标识一个Spring Boot应用程序的入口点，同时启用自动配置和组件扫描。
+- **@Controller**：标识控制器类，处理HTTP请求。
+- **@RestController**：结合@Controller和@ResponseBody，返回RESTful风格的数据。
+- **@Service**：标识服务类，通常用于标记业务逻辑层。
+- **@Repository**：标识数据访问组件，通常用于标记数据访问层。
+- **@Component**：通用的Spring组件注解，表示一个受Spring管理的组件。
+- **@Autowired**：用于自动装配Spring Bean。
+- **@Value**：用于注入配置属性值。
+- **@RequestMapping**：用于映射HTTP请求路径到Controller的处理方法。
+- **@GetMapping**、@PostMapping、@PutMapping、@DeleteMapping：简化@RequestMapping的GET、POST、PUT和DELETE请求。
+
+另外，一个与配置相关的重要注解是：
+
+- **@Configuration**：用于指定一个类为配置类，其中定义的bean会被Spring容器管理。通常与@Bean配合使用，@Bean用于声明一个Bean实例，由Spring容器进行管理。
