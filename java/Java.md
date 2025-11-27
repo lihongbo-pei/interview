@@ -149,7 +149,23 @@ Field[] declaredFields = clazz.getDeclaredFields();
 Field nameField = clazz.getDeclaredField("name");
 ```
 
+### 对注解解析的底层实现了解吗？
 
+注解本质上是一种特殊的接口，它继承自 `java.lang.annotation.Annotation` 接口，**所以注解也叫声明式接口**，例如，定义一个简单的注解：
+
+```java
+public @interface MyAnnotation {
+  String value();
+}
+```
+
+编译后，Java 编译器会将其转换为一个继承自 `Annotation` 的接口，并生成相应的字节码文件。
+
+根据注解的作用范围，Java 注解可以分为以下几种类型：
+
+- **源码级别注解** ：仅存在于源码中，编译后不会保留（`@Retention(RetentionPolicy.SOURCE)`）。
+- **类文件级别注解** ：保留在 `.class` 文件中，但运行时不可见（`@Retention(RetentionPolicy.CLASS)`）。
+- **运行时注解** ：保留在 `.class` 文件中，并且可以通过反射在运行时访问（`@Retention(RetentionPolicy.RUNTIME)`）。
 
 ### == 和 equals() 的区别
 
